@@ -445,9 +445,9 @@ class WikiApp {
             this.hasUnsavedChanges = false;
             this.updateSaveButton();
             
-            this.showNotification('Page saved successfully!', 'success');
+            this.showNotification('페이지가 저장되었습니다!', 'success');
         } else {
-            this.showNotification('Failed to save page. Please try again.', 'error');
+            this.showNotification('페이지 저장에 실패했습니다. 다시 시도해 주세요.', 'error');
         }
     }
 
@@ -594,11 +594,11 @@ class WikiApp {
         if (this.hasUnsavedChanges) {
             button.classList.add('btn-warning');
             button.classList.remove('btn-success');
-            button.innerHTML = '<i data-feather="save"></i> Save *';
+            button.innerHTML = '<i data-feather="save"></i> 저장 *';
         } else {
             button.classList.remove('btn-warning');
             button.classList.add('btn-success');
-            button.innerHTML = '<i data-feather="save"></i> Save';
+            button.innerHTML = '<i data-feather="save"></i> 저장';
         }
         this.initializeFeatherIcons();
     }
