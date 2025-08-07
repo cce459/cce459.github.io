@@ -58,13 +58,22 @@ class WikiApp {
      * Initialize the application
      */
     init() {
-        this.setupEventListeners();
-        this.initializeFeatherIcons();
-        this.loadPage(this.currentPage);
-        this.updateNavigation();
-        this.setupSearch();
-        this.setupUrlRouting();
-        this.setupAutoSave();
+        try {
+            this.setupEventListeners();
+            this.initializeFeatherIcons();
+            this.setupSearch();
+            this.setupUrlRouting();
+            this.setupAutoSave();
+            
+            // Load page after everything is set up
+            setTimeout(() => {
+                this.loadPage(this.currentPage);
+                this.updateNavigation();
+            }, 100);
+        } catch (error) {
+            console.error('Application initialization error:', error);
+            this.hideLoading();
+        }
     }
 
     /**
@@ -178,8 +187,11 @@ class WikiApp {
     setupUrlRouting() {
         // Handle initial URL
         const hash = window.location.hash.substring(1);
-        if (hash && hash !== this.currentPage) {
-            this.navigateToPage(hash);
+        if (hash) {
+            const decodedHash = decodeURIComponent(hash);
+            if (decodedHash !== this.currentPage) {
+                this.navigateToPage(decodedHash);
+            }
         }
 
         // Handle back/forward buttons
@@ -189,7 +201,7 @@ class WikiApp {
         });
 
         // Push initial state
-        history.replaceState({ page: this.currentPage }, '', `#${this.currentPage}`);
+        history.replaceState({ page: this.currentPage }, '', `#${encodeURIComponent(this.currentPage)}`);
     }
 
     /**
@@ -253,53 +265,61 @@ class WikiApp {
     loadPage(pageName, pushState = true) {
         this.showLoading();
         
-        // Check for unsaved changes
-        if (this.hasUnsavedChanges && !this.confirmLeavePage()) {
+        try {
+            // Check for unsaved changes
+            if (this.hasUnsavedChanges && !this.confirmLeavePage()) {
+                this.hideLoading();
+                return;
+            }
+
+            const page = this.storage.getPage(pageName);
+            
+            if (!page) {
+                // Page doesn't exist, create it
+                this.createPageAndEdit(pageName);
+                this.hideLoading();
+                return;
+            }
+
+            this.currentPage = pageName;
+            
+            // Update view
+            this.elements.pageTitle.textContent = page.title;
+            this.elements.pageContent.innerHTML = this.renderer.render(page.content);
+            this.updateLastModified(page.modified);
+            
+            // Update edit form
+            this.elements.pageTitleInput.value = page.title;
+            this.elements.pageEditor.value = page.content;
+            this.updatePreview();
+            
+            // Update navigation
+            this.updateNavigation();
+            
+            // Update URL
+            if (pushState) {
+                history.pushState({ page: pageName }, '', `#${encodeURIComponent(pageName)}`);
+            }
+            
+            // Update recent pages
+            this.storage.addToRecent(pageName);
+            this.updateRecentList();
+            
+            // Exit edit mode
+            if (this.isEditMode) {
+                this.setEditMode(false);
+            }
+            
+            this.hasUnsavedChanges = false;
+            this.updateSaveButton();
+        } catch (error) {
+            console.error('Error loading page:', error);
+            // Show fallback content
+            this.elements.pageTitle.textContent = pageName;
+            this.elements.pageContent.innerHTML = '<p>페이지를 로드하는 중 오류가 발생했습니다. 새로고침해 주세요.</p>';
+        } finally {
             this.hideLoading();
-            return;
         }
-
-        const page = this.storage.getPage(pageName);
-        
-        if (!page) {
-            // Page doesn't exist, create it
-            this.createPageAndEdit(pageName);
-            return;
-        }
-
-        this.currentPage = pageName;
-        
-        // Update view
-        this.elements.pageTitle.textContent = page.title;
-        this.elements.pageContent.innerHTML = this.renderer.render(page.content);
-        this.updateLastModified(page.modified);
-        
-        // Update edit form
-        this.elements.pageTitleInput.value = page.title;
-        this.elements.pageEditor.value = page.content;
-        this.updatePreview();
-        
-        // Update navigation
-        this.updateNavigation();
-        
-        // Update URL
-        if (pushState) {
-            history.pushState({ page: pageName }, '', `#${pageName}`);
-        }
-        
-        // Update recent pages
-        this.storage.addToRecent(pageName);
-        this.updateRecentList();
-        
-        // Exit edit mode
-        if (this.isEditMode) {
-            this.setEditMode(false);
-        }
-        
-        this.hasUnsavedChanges = false;
-        this.updateSaveButton();
-        
-        this.hideLoading();
     }
 
     /**
@@ -315,32 +335,38 @@ class WikiApp {
      * @param {string} pageName - Name of new page
      */
     createPageAndEdit(pageName) {
-        this.currentPage = pageName;
-        
-        // Initialize empty page
-        this.elements.pageTitle.textContent = pageName;
-        this.elements.pageContent.innerHTML = '<p><em>This page is empty. Click Edit to add content.</em></p>';
-        this.updateLastModified(null);
-        
-        // Initialize edit form
-        this.elements.pageTitleInput.value = pageName;
-        this.elements.pageEditor.value = '';
-        this.updatePreview();
-        
-        // Enter edit mode
-        this.setEditMode(true);
-        
-        // Update navigation
-        this.updateNavigation();
-        
-        // Update URL
-        history.pushState({ page: pageName }, '', `#${pageName}`);
-        
-        this.hasUnsavedChanges = false;
-        this.updateSaveButton();
-        
-        // Focus on editor
-        this.elements.pageEditor.focus();
+        try {
+            this.currentPage = pageName;
+            
+            // Initialize empty page
+            this.elements.pageTitle.textContent = pageName;
+            this.elements.pageContent.innerHTML = '<p><em>이 페이지는 비어있습니다. 편집 버튼을 클릭하여 내용을 추가하세요.</em></p>';
+            this.updateLastModified(null);
+            
+            // Initialize edit form
+            this.elements.pageTitleInput.value = pageName;
+            this.elements.pageEditor.value = '';
+            this.updatePreview();
+            
+            // Enter edit mode
+            this.setEditMode(true);
+            
+            // Update navigation
+            this.updateNavigation();
+            
+            // Update URL
+            history.pushState({ page: pageName }, '', `#${encodeURIComponent(pageName)}`);
+            
+            this.hasUnsavedChanges = false;
+            this.updateSaveButton();
+            
+            // Focus on editor
+            setTimeout(() => {
+                this.elements.pageEditor.focus();
+            }, 100);
+        } catch (error) {
+            console.error('Error creating page:', error);
+        }
     }
 
     /**
@@ -411,7 +437,7 @@ class WikiApp {
             
             // Update navigation and URL
             this.updateNavigation();
-            history.replaceState({ page: title }, '', `#${title}`);
+            history.replaceState({ page: title }, '', `#${encodeURIComponent(title)}`);
             
             // Exit edit mode
             this.setEditMode(false);
