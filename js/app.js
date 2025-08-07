@@ -390,12 +390,12 @@ class WikiApp {
         if (editMode) {
             this.elements.pageView.style.display = 'none';
             this.elements.pageEdit.style.display = 'block';
-            this.elements.editToggle.innerHTML = '<i data-feather="eye"></i> View';
+            this.elements.editToggle.innerHTML = '<i data-feather="eye"></i> 돌아가기';
             this.elements.pageEditor.focus();
         } else {
             this.elements.pageView.style.display = 'block';
             this.elements.pageEdit.style.display = 'none';
-            this.elements.editToggle.innerHTML = '<i data-feather="edit"></i> Edit';
+            this.elements.editToggle.innerHTML = '<i data-feather="edit"></i> 편집';
         }
         
         this.initializeFeatherIcons();
