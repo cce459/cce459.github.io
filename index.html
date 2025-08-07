@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Wiki</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.29.0/feather.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <h1>Personal Wiki</h1>
+                </div>
+                <div class="search-container">
+                    <input type="text" id="search-input" placeholder="Search pages..." class="search-input">
+                    <div class="search-results" id="search-results"></div>
+                </div>
+                <div class="header-actions">
+                    <button id="edit-toggle" class="btn btn-primary" title="Edit page">
+                        <i data-feather="edit"></i>
+                        Edit
+                    </button>
+                    <button id="new-page" class="btn btn-secondary" title="Create new page">
+                        <i data-feather="plus"></i>
+                        New
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <nav class="nav">
+                    <div class="nav-section">
+                        <h3>Pages</h3>
+                        <ul class="page-list" id="page-list">
+                            <li><a href="#" data-page="Home" class="page-link active">Home</a></li>
+                        </ul>
+                    </div>
+                    <div class="nav-section">
+                        <h3>Recent</h3>
+                        <ul class="recent-list" id="recent-list">
+                        </ul>
+                    </div>
+                </nav>
+            </aside>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- View Mode -->
+                <article class="page-view" id="page-view">
+                    <header class="page-header">
+                        <h1 class="page-title" id="page-title">Home</h1>
+                        <div class="page-meta">
+                            <span class="last-modified" id="last-modified">Never modified</span>
+                        </div>
+                    </header>
+                    <div class="page-content" id="page-content">
+                        <p>Welcome to your personal wiki! Click "Edit" to start adding content.</p>
+                    </div>
+                </article>
+
+                <!-- Edit Mode -->
+                <div class="page-edit" id="page-edit" style="display: none;">
+                    <header class="edit-header">
+                        <input type="text" id="page-title-input" class="page-title-input" placeholder="Page title...">
+                        <div class="edit-actions">
+                            <button id="save-page" class="btn btn-success">
+                                <i data-feather="save"></i>
+                                Save
+                            </button>
+                            <button id="cancel-edit" class="btn btn-secondary">
+                                <i data-feather="x"></i>
+                                Cancel
+                            </button>
+                        </div>
+                    </header>
+                    <div class="edit-content">
+                        <div class="editor-container">
+                            <div class="editor-panel">
+                                <h4>Edit</h4>
+                                <textarea id="page-editor" class="page-editor" placeholder="Write your content here...
+
+Supported formatting:
+# Header 1
+## Header 2
+### Header 3
+
+**bold text**
+*italic text*
+`code`
+
+- List item 1
+- List item 2
+
+[Link text](PageName)
+
+---
+
+Paragraphs are separated by empty lines."></textarea>
+                            </div>
+                            <div class="preview-panel">
+                                <h4>Preview</h4>
+                                <div id="preview-content" class="preview-content"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- New Page Modal -->
+                <div class="modal" id="new-page-modal" style="display: none;">
+                    <div class="modal-content">
+                        <h3>Create New Page</h3>
+                        <input type="text" id="new-page-title" placeholder="Page title..." class="new-page-input">
+                        <div class="modal-actions">
+                            <button id="create-page" class="btn btn-primary">Create</button>
+                            <button id="cancel-new-page" class="btn btn-secondary">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Loading indicator -->
+        <div class="loading" id="loading" style="display: none;">
+            <div class="spinner"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.29.0/feather.min.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/search.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
