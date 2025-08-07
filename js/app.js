@@ -580,9 +580,9 @@ class WikiApp {
     updateLastModified(timestamp) {
         if (timestamp) {
             const date = new Date(timestamp);
-            this.elements.lastModified.textContent = `Last modified: ${date.toLocaleString()}`;
+            this.elements.lastModified.textContent = `마지막 편집: ${date.toLocaleString()}`;
         } else {
-            this.elements.lastModified.textContent = 'Never modified';
+            this.elements.lastModified.textContent = '편집된 적 없음';
         }
     }
 
