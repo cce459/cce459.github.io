@@ -25,64 +25,64 @@ class WikiStorage {
      */
     createDefaultPages() {
         const defaultPages = {
-            'Home': {
-                title: 'Home',
-                content: `# Welcome to Your Personal Wiki
+            '대문': {
+                title: '대문',
+                content: `# 개인 위키에 오신 것을 환영합니다
 
-This is your personal wiki homepage. You can edit this page or create new ones using the navigation above.
+이곳은 당신의 개인 위키 홈페이지입니다. 위의 네비게이션을 사용하여 이 페이지를 편집하거나 새 페이지를 만들 수 있습니다.
 
-## Getting Started
+## 시작하기
 
-- Click the **Edit** button to modify this page
-- Use the **New** button to create additional pages  
-- Use the search bar to find pages quickly
-- Link to other pages using the format: [Page Name](PageName)
+- **편집** 버튼을 클릭하여 이 페이지를 수정하세요
+- **새로 만들기** 버튼을 사용하여 추가 페이지를 만드세요
+- 검색 창을 사용하여 페이지를 빠르게 찾으세요
+- 다음 형식으로 다른 페이지에 링크하세요: [페이지 이름](PageName)
 
-## Formatting
+## 서식
 
-You can use simple markdown-like formatting:
+간단한 마크다운과 같은 서식을 사용할 수 있습니다:
 
-### Headers
-Use # for headers (# ## ###)
+### 헤더
+헤더에 # 사용 (# ## ###)
 
-### Text Formatting
-- **Bold text** with double asterisks
-- *Italic text* with single asterisks  
-- \`Inline code\` with backticks
+### 텍스트 서식
+- **굵은 텍스트**는 두 개의 별표로
+- *기울임 텍스트*는 한 개의 별표로  
+- \`인라인 코드\`는 백틱으로
 
-### Lists
-- Bullet points with dashes
-- Numbered lists work too
+### 목록
+- 대시로 불릿 포인트
+- 번호 목록도 가능
 
-### Links
-Link to other pages: [About](About)
-External links: [Google](https://google.com)
+### 링크
+다른 페이지로 링크: [소개](소개)
+외부 링크: [구글](https://google.com)
 
 ---
 
-Happy writing!`,
+즐겁게 작성하세요!`,
                 created: Date.now(),
                 modified: Date.now(),
                 version: 1
             },
-            'About': {
-                title: 'About',
-                content: `# About This Wiki
+            '소개': {
+                title: '소개',
+                content: `# 이 위키에 대해
 
-This is a personal knowledge management system built with vanilla HTML, CSS, and JavaScript.
+이 위키는 순수한 HTML, CSS, JavaScript로 구축된 개인 지식 관리 시스템입니다.
 
-## Features
+## 기능
 
-- **Local Storage**: All your data is stored locally in your browser
-- **Markdown-like Syntax**: Easy formatting with simple markup
-- **Real-time Preview**: See your changes as you type
-- **Page Linking**: Link between pages seamlessly
-- **Search**: Find content across all your pages
-- **Responsive Design**: Works on desktop and mobile devices
+- **로컬 저장소**: 모든 데이터가 브라우저에 로컬로 저장됩니다
+- **마크다운 유사 문법**: 간단한 마크업으로 쉽게 서식 지정
+- **실시간 미리보기**: 입력하면서 변경 사항을 실시간으로 확인
+- **페이지 링크**: 페이지 간 원활한 연결
+- **검색**: 모든 페이지에서 콘텐츠 검색
+- **반응형 디자인**: 데스크톱과 모바일 장치에서 모두 작동
 
-## Privacy
+## 개인정보 보호
 
-All your data stays on your device. Nothing is sent to external servers.`,
+모든 데이터가 기기에 저장됩니다. 외부 서버로 전송되지 않습니다.`,
                 created: Date.now(),
                 modified: Date.now(),
                 version: 1

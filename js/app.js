@@ -7,7 +7,7 @@ class WikiApp {
         this.renderer = new WikiRenderer();
         this.search = null;
         
-        this.currentPage = 'Home';
+        this.currentPage = '대문';
         this.isEditMode = false;
         this.hasUnsavedChanges = false;
         
@@ -184,7 +184,7 @@ class WikiApp {
 
         // Handle back/forward buttons
         window.addEventListener('popstate', (e) => {
-            const pageName = e.state?.page || 'Home';
+            const pageName = e.state?.page || '대문';
             this.loadPage(pageName, false); // Don't push state again
         });
 

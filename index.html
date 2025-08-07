@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Wiki</title>
+    <title>엘마 위키</title>
     <link rel="stylesheet" href="styles/main.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.29.0/feather.min.css" rel="stylesheet">
 </head>
@@ -13,20 +13,20 @@
         <header class="header">
             <div class="header-content">
                 <div class="logo">
-                    <h1>Personal Wiki</h1>
+                    <h1>엘마 위키</h1>
                 </div>
                 <div class="search-container">
-                    <input type="text" id="search-input" placeholder="Search pages..." class="search-input">
+                    <input type="text" id="search-input" placeholder="문서 검색" class="search-input">
                     <div class="search-results" id="search-results"></div>
                 </div>
                 <div class="header-actions">
-                    <button id="edit-toggle" class="btn btn-primary" title="Edit page">
+                    <button id="edit-toggle" class="btn btn-primary" title="편집">
                         <i data-feather="edit"></i>
-                        Edit
+                        편집
                     </button>
-                    <button id="new-page" class="btn btn-secondary" title="Create new page">
+                    <button id="new-page" class="btn btn-secondary" title="생성">
                         <i data-feather="plus"></i>
-                        New
+                        생성
                     </button>
                 </div>
             </div>
@@ -38,13 +38,13 @@
             <aside class="sidebar">
                 <nav class="nav">
                     <div class="nav-section">
-                        <h3>Pages</h3>
+                        <h3>문서 목록</h3>
                         <ul class="page-list" id="page-list">
-                            <li><a href="#" data-page="Home" class="page-link active">Home</a></li>
+                            <li><a href="#" data-page="대문" class="page-link active">대문</a></li>
                         </ul>
                     </div>
                     <div class="nav-section">
-                        <h3>Recent</h3>
+                        <h3>최근 편집</h3>
                         <ul class="recent-list" id="recent-list">
                         </ul>
                     </div>
@@ -56,13 +56,13 @@
                 <!-- View Mode -->
                 <article class="page-view" id="page-view">
                     <header class="page-header">
-                        <h1 class="page-title" id="page-title">Home</h1>
+                        <h1 class="page-title" id="page-title">대문</h1>
                         <div class="page-meta">
-                            <span class="last-modified" id="last-modified">Never modified</span>
+                            <span class="last-modified" id="last-modified">마지막 편집</span>
                         </div>
                     </header>
                     <div class="page-content" id="page-content">
-                        <p>Welcome to your personal wiki! Click "Edit" to start adding content.</p>
+                        <p>개인 위키에 오신 것을 환영합니다! "편집" 버튼을 클릭하여 내용을 추가해보세요.</p>
                     </div>
                 </article>
 
@@ -73,18 +73,18 @@
                         <div class="edit-actions">
                             <button id="save-page" class="btn btn-success">
                                 <i data-feather="save"></i>
-                                Save
+                                저장
                             </button>
                             <button id="cancel-edit" class="btn btn-secondary">
                                 <i data-feather="x"></i>
-                                Cancel
+                                취소
                             </button>
                         </div>
                     </header>
                     <div class="edit-content">
                         <div class="editor-container">
                             <div class="editor-panel">
-                                <h4>Edit</h4>
+                                <h4>편집</h4>
                                 <textarea id="page-editor" class="page-editor" placeholder="Write your content here...
 
 Supported formatting:
@@ -106,7 +106,7 @@ Supported formatting:
 Paragraphs are separated by empty lines."></textarea>
                             </div>
                             <div class="preview-panel">
-                                <h4>Preview</h4>
+                                <h4>미리보기</h4>
                                 <div id="preview-content" class="preview-content"></div>
                             </div>
                         </div>
@@ -116,11 +116,11 @@ Paragraphs are separated by empty lines."></textarea>
                 <!-- New Page Modal -->
                 <div class="modal" id="new-page-modal" style="display: none;">
                     <div class="modal-content">
-                        <h3>Create New Page</h3>
+                        <h3>생성</h3>
                         <input type="text" id="new-page-title" placeholder="Page title..." class="new-page-input">
                         <div class="modal-actions">
-                            <button id="create-page" class="btn btn-primary">Create</button>
-                            <button id="cancel-new-page" class="btn btn-secondary">Cancel</button>
+                            <button id="create-page" class="btn btn-primary">생성</button>
+                            <button id="cancel-new-page" class="btn btn-secondary">취소</button>
                         </div>
                     </div>
                 </div>

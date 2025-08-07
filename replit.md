@@ -5,6 +5,7 @@ This is a client-side personal wiki application built with vanilla JavaScript. I
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
+Main page renamed to '대문' (Korean for "Main Page") at user request.
 
 # System Architecture
 
