@@ -311,8 +311,10 @@ class WikiRenderer {
      * @returns {string} Processed content
      */
     renderTags(content) {
-        return content.replace(/#([가-힣a-zA-Z0-9_]+)/g, (match, tag) => {
-            return `<span class="wiki-tag" data-tag="${tag}" onclick="app.showTaggedPages('${tag}')">#${tag}</span>`;
+        // Pattern for hashtags with spaces: #tag name or #태그명
+        return content.replace(/#([가-힣a-zA-Z0-9_][가-힣a-zA-Z0-9_\s]*[가-힣a-zA-Z0-9_]|[가-힣a-zA-Z0-9_]+)/g, (match, tag) => {
+            const normalizedTag = tag.trim().replace(/\s+/g, ' ');
+            return `<span class="wiki-tag" data-tag="${this.escapeHtml(normalizedTag)}" onclick="app.showTaggedPages('${this.escapeHtml(normalizedTag)}')">#${normalizedTag}</span>`;
         });
     }
 

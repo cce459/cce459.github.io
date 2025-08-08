@@ -704,13 +704,19 @@ class WikiStorage {
      * @returns {Array} Array of tags
      */
     extractTags(content) {
-        const tagPattern = /#([가-힣a-zA-Z0-9_]+)/g;
         const tags = [];
+        
+        // Pattern for hashtags with spaces: #tag name or #태그명
+        const tagPattern = /#([가-힣a-zA-Z0-9_][가-힣a-zA-Z0-9_\s]*[가-힣a-zA-Z0-9_]|[가-힣a-zA-Z0-9_]+)/g;
         let match;
         
         while ((match = tagPattern.exec(content)) !== null) {
-            const tag = match[1];
-            if (!tags.includes(tag)) {
+            let tag = match[1].trim();
+            
+            // Remove trailing spaces and normalize
+            tag = tag.replace(/\s+/g, ' ').trim();
+            
+            if (tag && !tags.includes(tag)) {
                 tags.push(tag);
             }
         }
@@ -747,9 +753,12 @@ class WikiStorage {
     getPagesByTag(tag) {
         const pages = this.getAllPages();
         const result = [];
+        const searchTag = tag.toLowerCase().trim();
         
         for (const [title, page] of Object.entries(pages)) {
-            if (page.tags && page.tags.includes(tag)) {
+            if (page.tags && page.tags.some(pageTag => 
+                pageTag.toLowerCase().trim() === searchTag
+            )) {
                 result.push({
                     title,
                     page,
