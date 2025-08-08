@@ -59,7 +59,6 @@ class WikiApp {
             importDataBtn: document.getElementById('import-data-btn'),
             importFile: document.getElementById('import-file'),
             wikiStatsBtn: document.getElementById('wiki-stats-btn'),
-            clearAllBtn: document.getElementById('clear-all-btn'),
             
             // History modal
             pageHistoryModal: document.getElementById('page-history-modal'),
@@ -866,11 +865,6 @@ class WikiApp {
             this.showWikiStats();
         });
         
-        // Clear all data
-        this.elements.clearAllBtn.addEventListener('click', () => {
-            this.clearAllData();
-        });
-        
         // Modal close events
         this.elements.closeHistory.addEventListener('click', () => {
             this.elements.pageHistoryModal.style.display = 'none';
@@ -1094,29 +1088,6 @@ class WikiApp {
         this.closeSettingsMenu();
     }
     
-    /**
-     * Clear all data
-     */
-    clearAllData() {
-        if (!confirm('정말로 모든 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
-            return;
-        }
-        
-        if (!confirm('마지막 확인입니다. 모든 페이지, 히스토리, 설정이 삭제됩니다. 계속하시겠습니까?')) {
-            return;
-        }
-        
-        if (this.storage.clearAll()) {
-            this.showNotification('모든 데이터가 삭제되었습니다.', 'success');
-            this.loadPage('대문');
-            this.updateNavigation();
-            this.updateRecentList();
-        } else {
-            this.showNotification('데이터 삭제에 실패했습니다.', 'error');
-        }
-        
-        this.closeSettingsMenu();
-    }
     
     /**
      * Escape HTML characters
