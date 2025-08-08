@@ -8,6 +8,7 @@ class WikiStorage {
         this.recentKey = 'wiki-recent';
         this.historyKey = 'wiki-history';
         this.imagesKey = 'wiki-images';
+        this.tagsKey = 'wiki-tags';
         this.initializeStorage();
     }
 
@@ -145,11 +146,15 @@ class WikiStorage {
                 this.removeFromRecent(oldTitle);
             }
             
+            // Extract tags from content
+            const tags = this.extractTags(content);
+            
             // Create or update page
             const existingPage = pages[title];
             pages[title] = {
                 title,
                 content,
+                tags,
                 created: existingPage ? existingPage.created : now,
                 modified: now,
                 version: existingPage ? existingPage.version + 1 : 1
@@ -689,6 +694,174 @@ class WikiStorage {
      */
     isValidImageName(name) {
         return /^[a-zA-Z0-9가-힣._-]+$/.test(name) && name.length <= 50;
+    }
+
+    /**
+     * Extract tags from page content
+     * @param {string} content - Page content
+     * @returns {Array} Array of tags
+     */
+    extractTags(content) {
+        const tagPattern = /#([가-힣a-zA-Z0-9_]+)/g;
+        const tags = [];
+        let match;
+        
+        while ((match = tagPattern.exec(content)) !== null) {
+            const tag = match[1];
+            if (!tags.includes(tag)) {
+                tags.push(tag);
+            }
+        }
+        
+        return tags;
+    }
+
+    /**
+     * Get all unique tags from all pages
+     * @returns {Array} Array of all tags with counts
+     */
+    getAllTags() {
+        const pages = this.getAllPages();
+        const tagCounts = {};
+        
+        for (const page of Object.values(pages)) {
+            if (page.tags) {
+                for (const tag of page.tags) {
+                    tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+                }
+            }
+        }
+        
+        return Object.entries(tagCounts)
+            .map(([tag, count]) => ({ tag, count }))
+            .sort((a, b) => b.count - a.count);
+    }
+
+    /**
+     * Get pages by tag
+     * @param {string} tag - Tag to search for
+     * @returns {Array} Array of pages with the tag
+     */
+    getPagesByTag(tag) {
+        const pages = this.getAllPages();
+        const result = [];
+        
+        for (const [title, page] of Object.entries(pages)) {
+            if (page.tags && page.tags.includes(tag)) {
+                result.push({
+                    title,
+                    page,
+                    modified: page.modified
+                });
+            }
+        }
+        
+        return result.sort((a, b) => b.modified - a.modified);
+    }
+
+    /**
+     * Get backlinks for a page (pages that link to this page)
+     * @param {string} pageTitle - Title of the page to find backlinks for
+     * @returns {Array} Array of pages that link to this page
+     */
+    getBacklinks(pageTitle) {
+        const pages = this.getAllPages();
+        const backlinks = [];
+        
+        for (const [title, page] of Object.entries(pages)) {
+            if (title === pageTitle) continue; // Skip self
+            
+            // Check if page content contains link to target page
+            const linkPattern = new RegExp(`\\[([^\\]]+)\\]\\(${this.escapeRegex(pageTitle)}\\)`, 'gi');
+            if (linkPattern.test(page.content)) {
+                backlinks.push({
+                    title,
+                    page,
+                    modified: page.modified
+                });
+            }
+        }
+        
+        return backlinks.sort((a, b) => b.modified - a.modified);
+    }
+
+    /**
+     * Get outgoing links from a page
+     * @param {string} pageTitle - Title of the page
+     * @returns {Array} Array of pages this page links to
+     */
+    getOutgoingLinks(pageTitle) {
+        const page = this.getPage(pageTitle);
+        if (!page) return [];
+        
+        const linkPattern = /\[([^\]]+)\]\(([^):/]+)\)/g;
+        const links = [];
+        let match;
+        
+        while ((match = linkPattern.exec(page.content)) !== null) {
+            const linkedPage = match[2];
+            if (linkedPage !== pageTitle && this.getPage(linkedPage)) {
+                links.push(linkedPage);
+            }
+        }
+        
+        return [...new Set(links)]; // Remove duplicates
+    }
+
+    /**
+     * Escape regex special characters
+     * @param {string} text - Text to escape
+     * @returns {string} Escaped text
+     */
+    escapeRegex(text) {
+        return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    /**
+     * Get page statistics with tags and links
+     * @returns {Object} Statistics object
+     */
+    getWikiStats() {
+        const pages = this.getAllPages();
+        const stats = {
+            totalPages: Object.keys(pages).length,
+            totalWords: 0,
+            totalCharacters: 0,
+            tagsCount: 0,
+            linksCount: 0,
+            mostConnectedPages: [],
+            popularTags: this.getAllTags().slice(0, 10)
+        };
+
+        const pageConnections = {};
+        
+        for (const [title, page] of Object.entries(pages)) {
+            stats.totalWords += page.content.split(/\s+/).filter(word => word.length > 0).length;
+            stats.totalCharacters += page.content.length;
+            
+            if (page.tags) {
+                stats.tagsCount += page.tags.length;
+            }
+            
+            const outgoingLinks = this.getOutgoingLinks(title);
+            const backlinks = this.getBacklinks(title);
+            const totalConnections = outgoingLinks.length + backlinks.length;
+            
+            stats.linksCount += outgoingLinks.length;
+            
+            pageConnections[title] = {
+                title,
+                connections: totalConnections,
+                outgoing: outgoingLinks.length,
+                incoming: backlinks.length
+            };
+        }
+        
+        stats.mostConnectedPages = Object.values(pageConnections)
+            .sort((a, b) => b.connections - a.connections)
+            .slice(0, 10);
+            
+        return stats;
     }
 }
 

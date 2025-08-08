@@ -108,6 +108,11 @@
                         <ul class="recent-list" id="recent-list">
                         </ul>
                     </div>
+                    <div class="nav-section">
+                        <h3>인기 태그</h3>
+                        <div class="popular-tags" id="popular-tags">
+                        </div>
+                    </div>
                 </nav>
             </aside>
 
@@ -124,6 +129,13 @@
                     <div class="page-content" id="page-content">
                         <p>개인 위키에 오신 것을 환영합니다! "편집" 버튼을 클릭하여 내용을 추가해보세요.</p>
                     </div>
+                    <footer class="page-footer">
+                        <div class="page-tags" id="page-tags"></div>
+                        <div class="page-links">
+                            <div class="backlinks" id="backlinks-section"></div>
+                            <div class="outgoing-links" id="outgoing-links-section"></div>
+                        </div>
+                    </footer>
                 </article>
 
                 <!-- Edit Mode -->
@@ -172,6 +184,8 @@
 [[분류:카테고리명]] - 페이지 분류
 ![이미지명] - 업로드된 이미지 삽입
 ![이미지명|캡션] - 캡션과 함께 이미지 삽입
+
+#태그명 - 페이지에 태그 추가
 
 > 인용문
 
@@ -232,6 +246,28 @@
                         <div id="image-grid" class="image-grid"></div>
                         <div class="modal-actions">
                             <button id="close-images" class="btn btn-secondary">닫기</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tagged Pages Modal -->
+                <div class="modal" id="tagged-pages-modal" style="display: none;">
+                    <div class="modal-content modal-large">
+                        <h3 id="tagged-pages-title">태그된 페이지</h3>
+                        <div id="tagged-pages-content" class="tagged-pages-list"></div>
+                        <div class="modal-actions">
+                            <button id="close-tagged-pages" class="btn btn-secondary">닫기</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Backlinks Modal -->
+                <div class="modal" id="backlinks-modal" style="display: none;">
+                    <div class="modal-content modal-large">
+                        <h3 id="backlinks-title">백링크</h3>
+                        <div id="backlinks-content" class="backlinks-list"></div>
+                        <div class="modal-actions">
+                            <button id="close-backlinks" class="btn btn-secondary">닫기</button>
                         </div>
                     </div>
                 </div>

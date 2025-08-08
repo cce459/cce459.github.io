@@ -79,6 +79,28 @@ class WikiApp {
             statsContent: document.getElementById('stats-content'),
             closeStats: document.getElementById('close-stats'),
             
+            // Tagged pages modal
+            taggedPagesModal: document.getElementById('tagged-pages-modal'),
+            taggedPagesTitle: document.getElementById('tagged-pages-title'),
+            taggedPagesContent: document.getElementById('tagged-pages-content'),
+            closeTaggedPages: document.getElementById('close-tagged-pages'),
+            
+            // Backlinks modal
+            backlinksModal: document.getElementById('backlinks-modal'),
+            backlinksTitle: document.getElementById('backlinks-title'),
+            backlinksContent: document.getElementById('backlinks-content'),
+            closeBacklinks: document.getElementById('close-backlinks'),
+            
+            // Page footer elements
+            pageTags: document.getElementById('page-tags'),
+            backlinksSection: document.getElementById('backlinks-section'),
+            outgoingLinksSection: document.getElementById('outgoing-links-section'),
+            popularTags: document.getElementById('popular-tags'),
+            
+            // Search
+            searchInput: document.getElementById('search-input'),
+            searchResults: document.getElementById('search-results'),
+            
             // Loading
             loading: document.getElementById('loading')
         };
@@ -96,11 +118,13 @@ class WikiApp {
             this.setupSearch();
             this.setupUrlRouting();
             this.setupAutoSave();
+            this.setupTagsAndLinksEvents();
             
             // Load page after everything is set up
             setTimeout(() => {
                 this.loadPage(this.currentPage);
                 this.updateNavigation();
+                this.updatePopularTags();
             }, 100);
         } catch (error) {
             console.error('Application initialization error:', error);

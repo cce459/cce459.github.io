@@ -1323,8 +1323,221 @@ del {
 
 .category-count {
     margin-top: 1rem;
+}
+
+/* Tags styling */
+.wiki-tag {
+    display: inline-block;
+    background: var(--primary-color);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    margin: 0.125rem;
+    transition: all 0.2s;
+    border: none;
+    text-decoration: none;
+}
+
+.wiki-tag:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.page-tags {
+    margin: 1.5rem 0;
+    padding: 1rem 0;
+    border-top: 1px solid var(--border-color);
+}
+
+.page-tags h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.popular-tags {
+    margin: 0.5rem 0;
+}
+
+.popular-tags .wiki-tag {
+    margin: 0.25rem 0.25rem 0.25rem 0;
+    background: var(--surface-color);
+    color: var(--primary-color);
+    border: 1px solid var(--border-color);
+    font-size: 0.7rem;
+}
+
+.popular-tags .wiki-tag:hover {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.popular-tags .wiki-tag::after {
+    content: attr(data-count);
+    margin-left: 0.25rem;
+    opacity: 0.7;
+    font-size: 0.65rem;
+}
+
+/* Page footer styling */
+.page-footer {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.page-links {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.backlinks, .outgoing-links {
+    background: var(--surface-color);
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+}
+
+.backlinks h4, .outgoing-links h4 {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.backlinks-list, .outgoing-links-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.backlinks-list li, .outgoing-links-list li {
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    background: var(--background-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.backlinks-list li:hover, .outgoing-links-list li:hover {
+    background: rgba(0, 102, 204, 0.05);
+    border-color: var(--primary-color);
+}
+
+.backlinks-list a, .outgoing-links-list a {
+    color: var(--text-color);
+    text-decoration: none;
+    font-weight: 500;
+    display: block;
+}
+
+.backlinks-list a:hover, .outgoing-links-list a:hover {
+    color: var(--primary-color);
+}
+
+.link-count {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    margin-left: 0.5rem;
+}
+
+.show-more-links {
+    display: block;
+    margin-top: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--primary-color);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+}
+
+.show-more-links:hover {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+/* Tagged pages modal styling */
+.tagged-pages-list, .backlinks-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.tagged-page-item, .backlink-item {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    transition: all 0.2s;
+}
+
+.tagged-page-item:hover, .backlink-item:hover {
+    background: rgba(0, 102, 204, 0.05);
+    border-color: var(--primary-color);
+}
+
+.tagged-page-item h4, .backlink-item h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+}
+
+.tagged-page-item a, .backlink-item a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.tagged-page-item a:hover, .backlink-item a:hover {
+    color: var(--primary-hover);
+}
+
+.page-excerpt {
     color: var(--text-muted);
     font-size: 0.875rem;
+    margin: 0.5rem 0;
+    line-height: 1.4;
+}
+
+.page-meta-info {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+/* Responsive adjustments for new features */
+@media (max-width: 768px) {
+    .page-links {
+        grid-template-columns: 1fr;
+    }
+    
+    .tagged-pages-list, .backlinks-list {
+        grid-template-columns: 1fr;
+    }
+}
     text-align: center;
     font-style: italic;
 }

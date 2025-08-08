@@ -20,6 +20,7 @@ class WikiRenderer {
         // Process wiki-specific syntax first
         html = this.renderWikiHeaders(html);
         html = this.renderCategories(html);
+        html = this.renderTags(html);
         html = this.renderTableOfContents(html);
         html = this.renderWikiBold(html);
         html = this.renderStrikethrough(html);
@@ -302,6 +303,17 @@ class WikiRenderer {
      */
     escapeRegex(text) {
         return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    /**
+     * Render tags (#tag) with clickable links
+     * @param {string} content - Content to process
+     * @returns {string} Processed content
+     */
+    renderTags(content) {
+        return content.replace(/#([가-힣a-zA-Z0-9_]+)/g, (match, tag) => {
+            return `<span class="wiki-tag" data-tag="${tag}" onclick="app.showTaggedPages('${tag}')">#${tag}</span>`;
+        });
     }
 
     /**
