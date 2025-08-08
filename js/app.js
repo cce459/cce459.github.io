@@ -83,6 +83,8 @@ class WikiApp {
     init() {
         try {
             this.setupEventListeners();
+            this.setupSettingsEvents();
+            this.initializeDarkMode();
             this.initializeFeatherIcons();
             this.setupSearch();
             this.setupUrlRouting();
@@ -195,19 +197,6 @@ class WikiApp {
         // Handle navigation events from search
         document.addEventListener('navigate-to-page', (e) => {
             this.navigateToPage(e.detail.pageName);
-        });
-        
-        // Settings menu events
-        this.setupSettingsEvents();
-        
-        // Initialize dark mode from localStorage
-        this.initializeDarkMode();
-        
-        // Click outside to close settings menu
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.settings-dropdown')) {
-                this.closeSettingsMenu();
-            }
         });
     }
 
@@ -898,6 +887,13 @@ class WikiApp {
                     modal.style.display = 'none';
                 }
             });
+        });
+        
+        // Click outside to close settings menu
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.settings-dropdown')) {
+                this.closeSettingsMenu();
+            }
         });
     }
     
