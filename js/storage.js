@@ -7,6 +7,7 @@ class WikiStorage {
         this.settingsKey = 'wiki-settings';
         this.recentKey = 'wiki-recent';
         this.historyKey = 'wiki-history';
+        this.imagesKey = 'wiki-images';
         this.initializeStorage();
     }
 
@@ -432,6 +433,7 @@ class WikiStorage {
             localStorage.removeItem(this.recentKey);
             localStorage.removeItem(this.historyKey);
             localStorage.removeItem(this.settingsKey);
+            localStorage.removeItem(this.imagesKey);
             localStorage.removeItem('wiki-draft'); // Clear drafts too
             this.initializeStorage();
             return true;
@@ -577,6 +579,116 @@ class WikiStorage {
      */
     escapeRegex(text) {
         return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+    
+    /**
+     * Save an image to storage
+     * @param {string} name - Image name
+     * @param {string} dataUrl - Base64 data URL
+     * @param {number} size - File size in bytes
+     * @returns {boolean} Success status
+     */
+    saveImage(name, dataUrl, size) {
+        try {
+            const images = this.getAllImages();
+            
+            // Check storage quota (rough estimate)
+            const dataSize = dataUrl.length;
+            if (dataSize > 1024 * 1024) { // 1MB limit per image
+                return { success: false, error: '이미지가 너무 큽니다. 1MB 이하의 이미지를 업로드해주세요.' };
+            }
+            
+            images[name] = {
+                name,
+                data: dataUrl,
+                size,
+                uploaded: Date.now()
+            };
+            
+            localStorage.setItem(this.imagesKey, JSON.stringify(images));
+            return { success: true };
+        } catch (error) {
+            console.error('Error saving image:', error);
+            if (error.name === 'QuotaExceededError') {
+                return { success: false, error: '저장소 용량이 부족합니다. 일부 이미지를 삭제해주세요.' };
+            }
+            return { success: false, error: '이미지 저장에 실패했습니다.' };
+        }
+    }
+    
+    /**
+     * Get all images
+     * @returns {Object} Object containing all images
+     */
+    getAllImages() {
+        try {
+            const data = localStorage.getItem(this.imagesKey);
+            return data ? JSON.parse(data) : {};
+        } catch (error) {
+            console.error('Error loading images:', error);
+            return {};
+        }
+    }
+    
+    /**
+     * Get a specific image by name
+     * @param {string} name - Image name
+     * @returns {Object|null} Image object or null if not found
+     */
+    getImage(name) {
+        const images = this.getAllImages();
+        return images[name] || null;
+    }
+    
+    /**
+     * Delete an image
+     * @param {string} name - Image name
+     * @returns {boolean} Success status
+     */
+    deleteImage(name) {
+        try {
+            const images = this.getAllImages();
+            if (images[name]) {
+                delete images[name];
+                localStorage.setItem(this.imagesKey, JSON.stringify(images));
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Error deleting image:', error);
+            return false;
+        }
+    }
+    
+    /**
+     * Get image names list
+     * @returns {Array} Array of image names
+     */
+    getImageNames() {
+        const images = this.getAllImages();
+        return Object.keys(images).sort();
+    }
+    
+    /**
+     * Get total images storage size
+     * @returns {number} Total size in bytes
+     */
+    getImagesSize() {
+        const images = this.getAllImages();
+        let totalSize = 0;
+        for (const image of Object.values(images)) {
+            totalSize += image.data.length;
+        }
+        return totalSize;
+    }
+    
+    /**
+     * Check if image name is valid
+     * @param {string} name - Image name to check
+     * @returns {boolean} Whether name is valid
+     */
+    isValidImageName(name) {
+        return /^[a-zA-Z0-9가-힣._-]+$/.test(name) && name.length <= 50;
     }
 }
 

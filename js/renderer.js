@@ -29,6 +29,7 @@ class WikiRenderer {
         html = this.renderHorizontalRules(html);
         html = this.renderCodeBlocks(html);
         html = this.renderInlineCode(html);
+        html = this.renderImages(html);
         html = this.renderBold(html);
         html = this.renderItalic(html);
         html = this.renderBlockquotes(html);
@@ -404,6 +405,37 @@ class WikiRenderer {
      */
     renderStrikethrough(content) {
         return content.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+    }
+    
+    /**
+     * Render images ![imageName] or ![imageName|caption]
+     * @param {string} content - Content to process
+     * @returns {string} Processed content
+     */
+    renderImages(content) {
+        return content.replace(/!\[([^\]]+)\]/g, (match, imageRef) => {
+            const parts = imageRef.split('|');
+            const imageName = parts[0].trim();
+            const caption = parts[1] ? parts[1].trim() : '';
+            
+            // Get image from storage
+            if (typeof window !== 'undefined' && window.WikiStorage) {
+                const storage = new window.WikiStorage();
+                const image = storage.getImage(imageName);
+                
+                if (image) {
+                    let html = `<img src="${image.data}" alt="${this.escapeHtml(imageName)}" title="${this.escapeHtml(imageName)}">`;
+                    if (caption) {
+                        html += `<div class="image-caption">${this.escapeHtml(caption)}</div>`;
+                    }
+                    return html;
+                } else {
+                    return `<span style="color: #ef4444; font-style: italic;">[이미지 "${this.escapeHtml(imageName)}"를 찾을 수 없습니다]</span>`;
+                }
+            }
+            
+            return match; // Fallback if storage not available
+        });
     }
 
     /**

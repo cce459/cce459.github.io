@@ -60,6 +60,14 @@ class WikiApp {
             importFile: document.getElementById('import-file'),
             wikiStatsBtn: document.getElementById('wiki-stats-btn'),
             
+            // Image management
+            uploadImageBtn: document.getElementById('upload-image-btn'),
+            manageImagesBtn: document.getElementById('manage-images-btn'),
+            imageFile: document.getElementById('image-file'),
+            imageManagementModal: document.getElementById('image-management-modal'),
+            imageGrid: document.getElementById('image-grid'),
+            closeImages: document.getElementById('close-images'),
+            
             // History modal
             pageHistoryModal: document.getElementById('page-history-modal'),
             historyTitle: document.getElementById('history-title'),
@@ -213,7 +221,7 @@ class WikiApp {
      */
     setupSearch() {
         this.search = new WikiSearch(this.storage, this.renderer);
-        // Make app available to search for navigation
+        // Make app available globally
         window.app = this;
     }
 
@@ -865,6 +873,25 @@ class WikiApp {
             this.showWikiStats();
         });
         
+        // Image upload
+        this.elements.uploadImageBtn.addEventListener('click', () => {
+            this.elements.imageFile.click();
+        });
+        
+        this.elements.imageFile.addEventListener('change', (e) => {
+            this.uploadImage(e.target.files[0]);
+        });
+        
+        // Image management
+        this.elements.manageImagesBtn.addEventListener('click', () => {
+            this.showImageManagement();
+        });
+        
+        // Close image management modal
+        this.elements.closeImages.addEventListener('click', () => {
+            this.elements.imageManagementModal.style.display = 'none';
+        });
+        
         // Modal close events
         this.elements.closeHistory.addEventListener('click', () => {
             this.elements.pageHistoryModal.style.display = 'none';
@@ -875,7 +902,7 @@ class WikiApp {
         });
         
         // Close modals on background click
-        [this.elements.pageHistoryModal, this.elements.wikiStatsModal].forEach(modal => {
+        [this.elements.pageHistoryModal, this.elements.wikiStatsModal, this.elements.imageManagementModal].forEach(modal => {
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     modal.style.display = 'none';
@@ -1045,6 +1072,9 @@ class WikiApp {
     showWikiStats() {
         const stats = this.storage.getStats();
         const categories = this.storage.getAllCategories();
+        const images = this.storage.getAllImages();
+        const imageCount = Object.keys(images).length;
+        const imagesSize = this.storage.getImagesSize();
         
         const statsHtml = `
             <div class="stats-grid">
@@ -1054,15 +1084,23 @@ class WikiApp {
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">${Math.round(stats.totalChars / 1024)}KB</div>
-                    <div class="stat-label">총 콘텐츠 크기</div>
+                    <div class="stat-label">콘텐츠 크기</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">${categories.length}</div>
                     <div class="stat-label">카테고리 수</div>
                 </div>
                 <div class="stat-card">
+                    <div class="stat-value">${imageCount}</div>
+                    <div class="stat-label">이미지 수</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${Math.round(imagesSize / 1024)}KB</div>
+                    <div class="stat-label">이미지 크기</div>
+                </div>
+                <div class="stat-card">
                     <div class="stat-value">${Math.round(stats.storageUsed / 1024)}KB</div>
-                    <div class="stat-label">저장소 사용량</div>
+                    <div class="stat-label">총 사용량</div>
                 </div>
             </div>
             
@@ -1088,6 +1126,169 @@ class WikiApp {
         this.closeSettingsMenu();
     }
     
+    
+    /**
+     * Upload an image
+     * @param {File} file - Image file to upload
+     */
+    async uploadImage(file) {
+        if (!file) return;
+        
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            this.showNotification('이미지 파일만 업로드할 수 있습니다.', 'error');
+            return;
+        }
+        
+        // Check file size (5MB limit)
+        if (file.size > 5 * 1024 * 1024) {
+            this.showNotification('이미지 크기가 5MB를 초과합니다.', 'error');
+            return;
+        }
+        
+        try {
+            this.showUploadProgress();
+            
+            // Generate unique filename
+            let fileName = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
+            fileName = fileName.replace(/[^a-zA-Z0-9가-힣._-]/g, '_'); // Clean filename
+            
+            // Check if filename already exists
+            let finalName = fileName;
+            let counter = 1;
+            while (this.storage.getImage(finalName)) {
+                finalName = `${fileName}_${counter}`;
+                counter++;
+            }
+            
+            // Convert to base64
+            const dataUrl = await this.fileToDataUrl(file);
+            
+            // Save image
+            const result = this.storage.saveImage(finalName, dataUrl, file.size);
+            
+            this.hideUploadProgress();
+            
+            if (result.success) {
+                this.showNotification(`이미지 "${finalName}"이 업로드되었습니다. 위키에서 ![${finalName}]로 사용할 수 있습니다.`, 'success');
+            } else {
+                this.showNotification(result.error, 'error');
+            }
+        } catch (error) {
+            this.hideUploadProgress();
+            console.error('Upload error:', error);
+            this.showNotification('이미지 업로드에 실패했습니다.', 'error');
+        }
+        
+        // Reset file input
+        this.elements.imageFile.value = '';
+        this.closeSettingsMenu();
+    }
+    
+    /**
+     * Convert file to data URL
+     * @param {File} file - File to convert
+     * @returns {Promise<string>} Data URL
+     */
+    fileToDataUrl(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = e => resolve(e.target.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+    
+    /**
+     * Show upload progress
+     */
+    showUploadProgress() {
+        const progress = document.createElement('div');
+        progress.id = 'upload-progress';
+        progress.className = 'upload-progress';
+        progress.innerHTML = `
+            <h4>이미지 업로드 중...</h4>
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+            <p>잠시만 기다려주세요...</p>
+        `;
+        document.body.appendChild(progress);
+        
+        // Animate progress bar
+        setTimeout(() => {
+            progress.querySelector('.progress-fill').style.width = '100%';
+        }, 100);
+    }
+    
+    /**
+     * Hide upload progress
+     */
+    hideUploadProgress() {
+        const progress = document.getElementById('upload-progress');
+        if (progress) {
+            progress.remove();
+        }
+    }
+    
+    /**
+     * Show image management modal
+     */
+    showImageManagement() {
+        const images = this.storage.getAllImages();
+        const imageNames = Object.keys(images);
+        
+        if (imageNames.length === 0) {
+            this.elements.imageGrid.innerHTML = `
+                <div class="empty-images">
+                    <i data-feather="image"></i>
+                    <p>업로드된 이미지가 없습니다.</p>
+                    <p>"이미지 업로드" 버튼으로 이미지를 추가해보세요.</p>
+                </div>
+            `;
+        } else {
+            const imageCards = imageNames.map(name => {
+                const image = images[name];
+                const sizeKB = Math.round(image.size / 1024);
+                return `
+                    <div class="image-card">
+                        <img src="${image.data}" alt="${name}" class="image-preview">
+                        <div class="image-info">
+                            <div class="image-name">${this.escapeHtml(name)}</div>
+                            <div class="image-size">${sizeKB}KB</div>
+                            <div class="image-actions">
+                                <button class="image-action-btn" onclick="navigator.clipboard.writeText('![${name}]')">복사</button>
+                                <button class="image-action-btn danger" onclick="app.deleteImage('${name}')">삭제</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            this.elements.imageGrid.innerHTML = imageCards;
+        }
+        
+        this.elements.imageManagementModal.style.display = 'flex';
+        this.closeSettingsMenu();
+        this.initializeFeatherIcons();
+    }
+    
+    /**
+     * Delete an image
+     * @param {string} name - Image name to delete
+     */
+    deleteImage(name) {
+        if (!confirm(`정말로 이미지 "${name}"을 삭제하시겠습니까?`)) {
+            return;
+        }
+        
+        if (this.storage.deleteImage(name)) {
+            this.showNotification('이미지가 삭제되었습니다.', 'success');
+            this.showImageManagement(); // Refresh the modal
+        } else {
+            this.showNotification('이미지 삭제에 실패했습니다.', 'error');
+        }
+    }
     
     /**
      * Escape HTML characters

@@ -56,6 +56,18 @@
                                 </button>
                             </div>
                             <div class="settings-section">
+                                <h4>이미지</h4>
+                                <button class="setting-button" id="upload-image-btn">
+                                    <i data-feather="image"></i>
+                                    이미지 업로드
+                                </button>
+                                <button class="setting-button" id="manage-images-btn">
+                                    <i data-feather="folder"></i>
+                                    이미지 관리
+                                </button>
+                                <input type="file" id="image-file" accept="image/*" style="display: none;">
+                            </div>
+                            <div class="settings-section">
                                 <h4>데이터</h4>
                                 <button class="setting-button" id="export-data-btn">
                                     <i data-feather="download"></i>
@@ -158,6 +170,8 @@
 [목차] - 자동 목차 생성
 
 [[분류:카테고리명]] - 페이지 분류
+![이미지명] - 업로드된 이미지 삽입
+![이미지명|캡션] - 캡션과 함께 이미지 삽입
 
 > 인용문
 
@@ -207,6 +221,17 @@
                         <div id="stats-content" class="stats-content"></div>
                         <div class="modal-actions">
                             <button id="close-stats" class="btn btn-secondary">닫기</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Image Management Modal -->
+                <div class="modal" id="image-management-modal" style="display: none;">
+                    <div class="modal-content modal-large">
+                        <h3>이미지 관리</h3>
+                        <div id="image-grid" class="image-grid"></div>
+                        <div class="modal-actions">
+                            <button id="close-images" class="btn btn-secondary">닫기</button>
                         </div>
                     </div>
                 </div>
