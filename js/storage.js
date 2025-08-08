@@ -9,6 +9,8 @@ class WikiStorage {
         this.historyKey = 'wiki-history';
         this.imagesKey = 'wiki-images';
         this.tagsKey = 'wiki-tags';
+        this.favoritesKey = 'wiki-favorites';
+        this.templatesKey = 'wiki-templates';
         this.initializeStorage();
     }
 
@@ -862,6 +864,355 @@ class WikiStorage {
             .slice(0, 10);
             
         return stats;
+    }
+
+    /**
+     * Favorites management
+     */
+    getFavorites() {
+        const favorites = localStorage.getItem(this.favoritesKey);
+        return favorites ? JSON.parse(favorites) : [];
+    }
+
+    addToFavorites(pageTitle) {
+        const favorites = this.getFavorites();
+        if (!favorites.includes(pageTitle)) {
+            favorites.push(pageTitle);
+            localStorage.setItem(this.favoritesKey, JSON.stringify(favorites));
+            return true;
+        }
+        return false;
+    }
+
+    removeFromFavorites(pageTitle) {
+        const favorites = this.getFavorites();
+        const index = favorites.indexOf(pageTitle);
+        if (index > -1) {
+            favorites.splice(index, 1);
+            localStorage.setItem(this.favoritesKey, JSON.stringify(favorites));
+            return true;
+        }
+        return false;
+    }
+
+    isFavorite(pageTitle) {
+        return this.getFavorites().includes(pageTitle);
+    }
+
+    /**
+     * Template management
+     */
+    getTemplates() {
+        const templates = localStorage.getItem(this.templatesKey);
+        if (templates) {
+            return JSON.parse(templates);
+        }
+        
+        // Initialize default templates
+        const defaultTemplates = {
+            note: {
+                name: "노트 템플릿",
+                content: `# {{title}}
+
+## 개요
+<!-- 여기에 노트의 주요 내용 요약 -->
+
+## 내용
+<!-- 상세 내용 작성 -->
+
+## 참고자료
+- 
+- 
+
+## 태그
+#노트 #{{date}}`
+            },
+            meeting: {
+                name: "회의록 템플릿",
+                content: `# {{title}}
+
+**일시:** {{date}}
+**참석자:** 
+**장소:** 
+
+## 안건
+1. 
+2. 
+3. 
+
+## 논의사항
+### 안건 1
+- 
+
+### 안건 2
+- 
+
+## 결정사항
+- 
+
+## 후속조치
+| 항목 | 담당자 | 마감일 |
+|------|--------|--------|
+|      |        |        |
+
+#회의록 #{{date}}`
+            },
+            project: {
+                name: "프로젝트 템플릿",
+                content: `# {{title}}
+
+## 프로젝트 개요
+<!-- 프로젝트 목표와 배경 -->
+
+## 일정
+- **시작일:** 
+- **종료일:** 
+- **주요 마일스톤:**
+  - 
+
+## 팀원
+- **프로젝트 매니저:** 
+- **개발자:** 
+- **디자이너:** 
+
+## 요구사항
+### 기능 요구사항
+1. 
+2. 
+
+### 비기능 요구사항
+1. 
+2. 
+
+## 진행상황
+- [ ] 요구사항 분석
+- [ ] 설계
+- [ ] 개발
+- [ ] 테스트
+- [ ] 배포
+
+## 이슈 및 리스크
+| 이슈 | 심각도 | 상태 | 담당자 |
+|------|--------|------|--------|
+|      |        |      |        |
+
+#프로젝트 #{{date}}`
+            },
+            diary: {
+                name: "일기 템플릿",
+                content: `# {{date}}
+
+## 오늘 한 일
+- 
+- 
+
+## 느낀 점
+<!-- 오늘의 감정이나 생각 -->
+
+## 배운 것
+<!-- 새로 알게 된 것이나 깨달은 점 -->
+
+## 내일 할 일
+- [ ] 
+- [ ] 
+
+## 기분
+😊 😐 😔 😤 😴
+
+#일기 #{{date}}`
+            },
+            reference: {
+                name: "참고자료 템플릿",
+                content: `# {{title}}
+
+## 기본 정보
+- **출처:** 
+- **저자:** 
+- **날짜:** {{date}}
+- **URL:** 
+
+## 요약
+<!-- 핵심 내용 요약 -->
+
+## 주요 포인트
+1. 
+2. 
+3. 
+
+## 인용구
+> 
+
+## 관련 자료
+- [관련 페이지](페이지명)
+- 
+
+## 내 생각
+<!-- 개인적인 의견이나 분석 -->
+
+#참고자료 #{{date}}`
+            }
+        };
+        
+        localStorage.setItem(this.templatesKey, JSON.stringify(defaultTemplates));
+        return defaultTemplates;
+    }
+
+    getTemplate(templateId) {
+        const templates = this.getTemplates();
+        return templates[templateId] || null;
+    }
+
+    /**
+     * Apply template to create page content
+     */
+    applyTemplate(templateId, pageTitle) {
+        const template = this.getTemplate(templateId);
+        if (!template) return '';
+        
+        const today = new Date();
+        const dateStr = today.toISOString().split('T')[0];
+        const dateKorean = today.toLocaleDateString('ko-KR');
+        
+        let content = template.content;
+        content = content.replace(/\{\{title\}\}/g, pageTitle);
+        content = content.replace(/\{\{date\}\}/g, dateKorean);
+        content = content.replace(/\{\{date-iso\}\}/g, dateStr);
+        
+        return content;
+    }
+
+    /**
+     * Enhanced search functionality
+     */
+    searchPages(query, options = {}) {
+        const {
+            includeContent = true,
+            includeTitle = true,
+            includeTags = true,
+            limit = 50,
+            excerpt = true
+        } = options;
+        
+        if (!query.trim()) return [];
+        
+        const pages = this.getAllPages();
+        const results = [];
+        const queryLower = query.toLowerCase();
+        const queryWords = queryLower.split(/\s+/).filter(word => word.length > 0);
+        
+        Object.entries(pages).forEach(([title, page]) => {
+            let score = 0;
+            let matches = [];
+            let excerpts = [];
+            
+            // Title matching (highest priority)
+            if (includeTitle) {
+                const titleLower = title.toLowerCase();
+                if (titleLower.includes(queryLower)) {
+                    score += 100;
+                    matches.push({ type: 'title', text: title });
+                }
+                
+                // Word-based title matching
+                queryWords.forEach(word => {
+                    if (titleLower.includes(word)) {
+                        score += 50;
+                    }
+                });
+            }
+            
+            // Content matching
+            if (includeContent && page.content) {
+                const contentLower = page.content.toLowerCase();
+                
+                // Exact phrase matching
+                if (contentLower.includes(queryLower)) {
+                    score += 30;
+                }
+                
+                // Word-based content matching
+                queryWords.forEach(word => {
+                    const wordCount = (contentLower.match(new RegExp(word, 'g')) || []).length;
+                    score += wordCount * 5;
+                    
+                    if (wordCount > 0 && excerpt) {
+                        // Find excerpts containing the word
+                        const sentences = page.content.split(/[.!?]\s+/);
+                        sentences.forEach(sentence => {
+                            if (sentence.toLowerCase().includes(word)) {
+                                excerpts.push(sentence.trim());
+                            }
+                        });
+                    }
+                });
+            }
+            
+            // Tags matching
+            if (includeTags && page.tags) {
+                page.tags.forEach(tag => {
+                    if (tag.toLowerCase().includes(queryLower)) {
+                        score += 20;
+                        matches.push({ type: 'tag', text: `#${tag}` });
+                    }
+                });
+            }
+            
+            if (score > 0) {
+                results.push({
+                    title,
+                    page,
+                    score,
+                    matches,
+                    excerpts: excerpts.slice(0, 3), // Limit to 3 excerpts
+                    highlighted: this.highlightText(title, queryWords)
+                });
+            }
+        });
+        
+        // Sort by score (descending) and return limited results
+        return results
+            .sort((a, b) => b.score - a.score)
+            .slice(0, limit);
+    }
+
+    /**
+     * Highlight search terms in text
+     */
+    highlightText(text, queryWords) {
+        let highlighted = text;
+        queryWords.forEach(word => {
+            const regex = new RegExp(`(${word})`, 'gi');
+            highlighted = highlighted.replace(regex, '<mark>$1</mark>');
+        });
+        return highlighted;
+    }
+
+    /**
+     * Get search suggestions
+     */
+    getSearchSuggestions(query, limit = 10) {
+        if (!query.trim()) return [];
+        
+        const pages = this.getAllPages();
+        const suggestions = new Set();
+        const queryLower = query.toLowerCase();
+        
+        // Title suggestions
+        Object.keys(pages).forEach(title => {
+            if (title.toLowerCase().includes(queryLower)) {
+                suggestions.add(title);
+            }
+        });
+        
+        // Tag suggestions
+        const allTags = this.getAllTags();
+        allTags.forEach(({ tag }) => {
+            if (tag.toLowerCase().includes(queryLower)) {
+                suggestions.add(`#${tag}`);
+            }
+        });
+        
+        return Array.from(suggestions).slice(0, limit);
     }
 }
 

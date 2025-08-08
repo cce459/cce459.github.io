@@ -101,6 +101,13 @@ class WikiApp {
             searchInput: document.getElementById('search-input'),
             searchResults: document.getElementById('search-results'),
             
+            // Favorites
+            favoriteBtn: document.getElementById('favorite-btn'),
+            favoritesList: document.getElementById('favorites-list'),
+            
+            // Templates
+            pageTemplate: document.getElementById('page-template'),
+            
             // Loading
             loading: document.getElementById('loading')
         };
@@ -119,12 +126,14 @@ class WikiApp {
             this.setupUrlRouting();
             this.setupAutoSave();
             this.setupTagsAndLinksEvents();
+            this.setupFavoritesEvents();
             
             // Load page after everything is set up
             setTimeout(() => {
                 this.loadPage(this.currentPage);
                 this.updateNavigation();
                 this.updatePopularTags();
+                this.updateFavoritesList();
             }, 100);
         } catch (error) {
             console.error('Application initialization error:', error);
@@ -373,6 +382,9 @@ class WikiApp {
             
             // Update page footer with tags and links
             this.updatePageFooter(page);
+            
+            // Update favorite button state
+            this.updateFavoriteButton(pageName);
             
             // Update URL
             if (pushState) {
@@ -1583,6 +1595,144 @@ class WikiApp {
     hideBacklinksModal() {
         if (this.elements.backlinksModal) {
             this.elements.backlinksModal.style.display = 'none';
+        }
+    }
+
+    /**
+     * Setup favorites event listeners
+     */
+    setupFavoritesEvents() {
+        if (this.elements.favoriteBtn) {
+            this.elements.favoriteBtn.addEventListener('click', () => {
+                this.toggleFavorite();
+            });
+        }
+    }
+
+    /**
+     * Toggle favorite status of current page
+     */
+    toggleFavorite() {
+        const currentPageTitle = this.currentPage;
+        if (!currentPageTitle) return;
+
+        if (this.storage.isFavorite(currentPageTitle)) {
+            this.storage.removeFromFavorites(currentPageTitle);
+            this.showNotification('즐겨찾기에서 제거되었습니다.', 'success');
+        } else {
+            this.storage.addToFavorites(currentPageTitle);
+            this.showNotification('즐겨찾기에 추가되었습니다.', 'success');
+        }
+
+        this.updateFavoriteButton(currentPageTitle);
+        this.updateFavoritesList();
+    }
+
+    /**
+     * Update favorite button state
+     * @param {string} pageTitle - Current page title
+     */
+    updateFavoriteButton(pageTitle) {
+        if (!this.elements.favoriteBtn) return;
+
+        const isFavorite = this.storage.isFavorite(pageTitle);
+        const icon = this.elements.favoriteBtn.querySelector('i[data-feather]');
+        
+        if (isFavorite) {
+            this.elements.favoriteBtn.classList.add('favorite-active');
+            this.elements.favoriteBtn.title = '즐겨찾기에서 제거';
+            if (icon) {
+                icon.setAttribute('data-feather', 'star');
+                icon.style.fill = 'currentColor';
+            }
+        } else {
+            this.elements.favoriteBtn.classList.remove('favorite-active');
+            this.elements.favoriteBtn.title = '즐겨찾기에 추가';
+            if (icon) {
+                icon.setAttribute('data-feather', 'star');
+                icon.style.fill = 'none';
+            }
+        }
+        
+        feather.replace();
+    }
+
+    /**
+     * Update favorites list in sidebar
+     */
+    updateFavoritesList() {
+        if (!this.elements.favoritesList) return;
+
+        const favorites = this.storage.getFavorites();
+        
+        if (favorites.length === 0) {
+            this.elements.favoritesList.innerHTML = '<li class="no-favorites">즐겨찾기가 없습니다</li>';
+            return;
+        }
+
+        this.elements.favoritesList.innerHTML = favorites.map(title => {
+            const isActive = title === this.currentPage;
+            return `
+                <li>
+                    <a href="#" data-page="${title}" class="page-link ${isActive ? 'active' : ''}" onclick="app.navigateToPage('${title}')">
+                        <i data-feather="star" style="width: 14px; height: 14px; fill: var(--accent-color);"></i>
+                        ${title}
+                    </a>
+                </li>
+            `;
+        }).join('');
+        
+        feather.replace();
+    }
+
+    /**
+     * Create page with specific content
+     * @param {string} pageName - Name of new page
+     * @param {string} content - Initial content
+     */
+    createPageWithContent(pageName, content) {
+        try {
+            this.currentPage = pageName;
+            
+            // Initialize page with template content
+            this.elements.pageTitle.textContent = pageName;
+            this.elements.pageContent.innerHTML = this.renderer.render(content);
+            this.updateLastModified(null);
+            
+            // Initialize edit form with template content
+            this.elements.pageTitleInput.value = pageName;
+            this.elements.pageEditor.value = content;
+            this.updatePreview();
+            
+            // Update navigation and enter edit mode
+            this.updateNavigation();
+            this.setEditMode(true);
+            
+            this.hasUnsavedChanges = true;
+            this.updateSaveButton();
+        } catch (error) {
+            console.error('Error creating page with content:', error);
+            this.showNotification('페이지 생성 중 오류가 발생했습니다.', 'error');
+        }
+    }
+
+    /**
+     * Create new page with template
+     */
+    createNewPage() {
+        const pageTitle = this.elements.newPageTitle.value.trim();
+        const selectedTemplate = this.elements.pageTemplate ? this.elements.pageTemplate.value : '';
+        
+        if (pageTitle) {
+            this.hideNewPageModal();
+            
+            // Apply template if selected
+            if (selectedTemplate) {
+                const templateContent = this.storage.applyTemplate(selectedTemplate, pageTitle);
+                this.createPageWithContent(pageTitle, templateContent);
+            } else {
+                this.createPageAndEdit(pageTitle);
+            }
         }
     }
 }

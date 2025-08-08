@@ -1539,6 +1539,122 @@ del {
     }
 }
 
+/* Favorites and Templates */
+.favorite-btn {
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    border-radius: var(--border-radius);
+    padding: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.favorite-btn:hover {
+    background-color: var(--hover-color);
+    border-color: var(--accent-color);
+}
+
+.favorite-btn.favorite-active {
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
+.favorites-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.favorites-list li {
+    margin-bottom: 0.25rem;
+}
+
+.favorites-list .page-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-radius: var(--border-radius);
+    text-decoration: none;
+    color: var(--text-color);
+    transition: background-color 0.2s ease;
+}
+
+.favorites-list .page-link:hover {
+    background-color: var(--hover-color);
+}
+
+.favorites-list .page-link.active {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+.no-favorites {
+    color: var(--text-muted);
+    font-style: italic;
+    padding: 0.5rem;
+    text-align: center;
+}
+
+.template-selection {
+    margin: 1rem 0;
+}
+
+.template-selection h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9rem;
+    color: var(--text-color);
+}
+
+.template-select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background-color: var(--background-color);
+    color: var(--text-color);
+    font-size: 0.9rem;
+}
+
+.template-select:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+/* Enhanced search results */
+.search-result-excerpt {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    line-height: 1.4;
+}
+
+.search-result-excerpt mark {
+    background-color: var(--accent-color);
+    color: white;
+    padding: 0.1rem 0.2rem;
+    border-radius: 2px;
+}
+
+.search-result-matches {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.search-match-tag {
+    background-color: var(--hover-color);
+    color: var(--text-muted);
+    padding: 0.2rem 0.4rem;
+    border-radius: var(--border-radius);
+    font-size: 0.75rem;
+}
+
 /* Enhanced lists */
 .page-content ul,
 .page-content ol,

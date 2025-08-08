@@ -109,6 +109,11 @@
                         </ul>
                     </div>
                     <div class="nav-section">
+                        <h3>즐겨찾기</h3>
+                        <ul class="favorites-list" id="favorites-list">
+                        </ul>
+                    </div>
+                    <div class="nav-section">
                         <h3>인기 태그</h3>
                         <div class="popular-tags" id="popular-tags">
                         </div>
@@ -124,6 +129,9 @@
                         <h1 class="page-title" id="page-title">대문</h1>
                         <div class="page-meta">
                             <span class="last-modified" id="last-modified">마지막 편집</span>
+                            <button id="favorite-btn" class="favorite-btn" title="즐겨찾기">
+                                <i data-feather="star"></i>
+                            </button>
                         </div>
                     </header>
                     <div class="page-content" id="page-content">
@@ -208,8 +216,19 @@
                 <!-- New Page Modal -->
                 <div class="modal" id="new-page-modal" style="display: none;">
                     <div class="modal-content">
-                        <h3>생성</h3>
-                        <input type="text" id="new-page-title" placeholder="Page title..." class="new-page-input">
+                        <h3>새 페이지 생성</h3>
+                        <input type="text" id="new-page-title" placeholder="페이지 제목..." class="new-page-input">
+                        <div class="template-selection">
+                            <h4>템플릿 선택</h4>
+                            <select id="page-template" class="template-select">
+                                <option value="">빈 페이지</option>
+                                <option value="note">노트 템플릿</option>
+                                <option value="meeting">회의록 템플릿</option>
+                                <option value="project">프로젝트 템플릿</option>
+                                <option value="diary">일기 템플릿</option>
+                                <option value="reference">참고자료 템플릿</option>
+                            </select>
+                        </div>
                         <div class="modal-actions">
                             <button id="create-page" class="btn btn-primary">생성</button>
                             <button id="cancel-new-page" class="btn btn-secondary">취소</button>
