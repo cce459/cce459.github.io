@@ -17,7 +17,14 @@ class WikiRenderer {
 
         let html = content;
         
-        // Process in order to avoid conflicts
+        // Process wiki-specific syntax first
+        html = this.renderWikiHeaders(html);
+        html = this.renderCategories(html);
+        html = this.renderTableOfContents(html);
+        html = this.renderWikiBold(html);
+        html = this.renderStrikethrough(html);
+        
+        // Then process standard markdown
         html = this.renderHeaders(html);
         html = this.renderHorizontalRules(html);
         html = this.renderCodeBlocks(html);
@@ -336,16 +343,83 @@ class WikiRenderer {
     }
 
     /**
+     * Render wiki-style headers (= text =)
+     * @param {string} content - Content to process
+     * @returns {string} Processed content
+     */
+    renderWikiHeaders(content) {
+        return content.replace(/^(={1,5})\s*(.+?)\s*\1\s*$/gm, (match, equals, text) => {
+            const level = equals.length;
+            const id = this.generateId(text);
+            return `<h${level} id="${id}">${text.trim()}</h${level}>`;
+        });
+    }
+
+    /**
+     * Render categories [[분류:...]]
+     * @param {string} content - Content to process
+     * @returns {string} Processed content
+     */
+    renderCategories(content) {
+        return content.replace(/\[\[분류:([^\]]+)\]\]/g, (match, category) => {
+            return `<div class="wiki-category"><span class="category-label">분류:</span> <span class="category-name">${category.trim()}</span></div>`;
+        });
+    }
+
+    /**
+     * Render table of contents [목차]
+     * @param {string} content - Content to process
+     * @returns {string} Processed content
+     */
+    renderTableOfContents(content) {
+        return content.replace(/\[목차\]/g, () => {
+            const toc = this.generateTOC(content);
+            if (toc.length === 0) return '';
+            
+            let tocHtml = '<div class="wiki-toc"><h4>목차</h4><ul>';
+            for (const item of toc) {
+                const indent = '  '.repeat(item.level - 1);
+                tocHtml += `${indent}<li><a href="#${item.id}">${item.text}</a></li>`;
+            }
+            tocHtml += '</ul></div>';
+            return tocHtml;
+        });
+    }
+
+    /**
+     * Render wiki-style bold (--text--)
+     * @param {string} content - Content to process
+     * @returns {string} Processed content
+     */
+    renderWikiBold(content) {
+        return content.replace(/--([^-]+)--/g, '<strong>$1</strong>');
+    }
+
+    /**
+     * Render strikethrough (~~text~~)
+     * @param {string} content - Content to process
+     * @returns {string} Processed content
+     */
+    renderStrikethrough(content) {
+        return content.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+    }
+
+    /**
      * Convert content to table of contents
      * @param {string} content - Wiki content
      * @returns {Array} Array of TOC entries
      */
     generateTOC(content) {
         const toc = [];
-        const headerRegex = /^(#{1,6})\s+(.+)$/gm;
+        
+        // Match both markdown headers (# text) and wiki headers (= text =)
+        const markdownHeaderRegex = /^(#{1,6})\s+(.+)$/gm;
+        const wikiHeaderRegex = /^(={1,5})\s*(.+?)\s*\1\s*$/gm;
+        
         let match;
-
-        while ((match = headerRegex.exec(content)) !== null) {
+        
+        // Find markdown headers
+        while ((match = markdownHeaderRegex.exec(content)) !== null) {
             const level = match[1].length;
             const text = match[2].trim();
             const id = this.generateId(text);
@@ -356,8 +430,26 @@ class WikiRenderer {
                 id
             });
         }
-
-        return toc;
+        
+        // Find wiki headers
+        while ((match = wikiHeaderRegex.exec(content)) !== null) {
+            const level = match[1].length;
+            const text = match[2].trim();
+            const id = this.generateId(text);
+            
+            toc.push({
+                level,
+                text,
+                id
+            });
+        }
+        
+        // Sort by position in content
+        return toc.sort((a, b) => {
+            const aIndex = content.indexOf(a.text);
+            const bIndex = content.indexOf(b.text);
+            return aIndex - bIndex;
+        });
     }
 }
 
