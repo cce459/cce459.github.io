@@ -661,6 +661,19 @@ html {
     display: inline-block;
     font-size: 0.875rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+.wiki-category.category-link {
+    cursor: pointer;
+    user-select: none;
+}
+
+.wiki-category.category-link:hover {
+    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+    border-color: #0284c7;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .category-label {
@@ -873,6 +886,68 @@ del {
     border-bottom-color: #5b21b6;
 }
 
+/* Category page styling */
+.category-page-list {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+}
+
+.category-page-list h3 {
+    margin: 0 0 1rem 0;
+    color: var(--primary-color);
+    font-size: 1.25rem;
+    font-weight: 600;
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 0.5rem;
+}
+
+.category-pages {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.5rem;
+}
+
+.category-pages li {
+    margin: 0;
+    padding: 0.5rem;
+    background: var(--background-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    transition: all 0.2s;
+}
+
+.category-pages li:hover {
+    background: rgba(0, 102, 204, 0.1);
+    border-color: var(--primary-color);
+}
+
+.category-pages a {
+    display: block;
+    color: var(--text-color);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.category-pages a:hover {
+    color: var(--primary-color);
+}
+
+.category-count {
+    margin-top: 1rem;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    text-align: center;
+    font-style: italic;
+}
+
 /* Enhanced lists */
 .page-content ul,
 .page-content ol,
@@ -962,5 +1037,20 @@ del {
     .page-content .internal-link:hover,
     .preview-content .internal-link:hover {
         background: rgba(147, 51, 234, 0.3);
+    }
+    
+    .category-page-list {
+        background: var(--surface-color);
+        border-color: var(--border-color);
+    }
+    
+    .category-pages li {
+        background: var(--background-color);
+        border-color: var(--border-color);
+    }
+    
+    .category-pages li:hover {
+        background: rgba(59, 130, 246, 0.1);
+        border-color: #3b82f6;
     }
 }

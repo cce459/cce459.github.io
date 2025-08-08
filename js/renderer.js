@@ -362,7 +362,9 @@ class WikiRenderer {
      */
     renderCategories(content) {
         return content.replace(/\[\[분류:([^\]]+)\]\]/g, (match, category) => {
-            return `<div class="wiki-category"><span class="category-label">분류:</span> <span class="category-name">${category.trim()}</span></div>`;
+            const categoryName = category.trim();
+            const categoryPageTitle = `분류:${categoryName}`;
+            return `<div class="wiki-category category-link" data-category="${this.escapeHtml(categoryPageTitle)}"><span class="category-label">분류:</span> <span class="category-name">${this.escapeHtml(categoryName)}</span></div>`;
         });
     }
 

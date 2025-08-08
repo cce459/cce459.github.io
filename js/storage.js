@@ -490,6 +490,94 @@ class WikiStorage {
         }
         return null;
     }
+    
+    /**
+     * Get all categories used in pages
+     * @returns {Array} Array of category names
+     */
+    getAllCategories() {
+        const pages = this.getAllPages();
+        const categories = new Set();
+        const categoryRegex = /\[\[분류:([^\]]+)\]\]/g;
+        
+        for (const page of Object.values(pages)) {
+            let match;
+            while ((match = categoryRegex.exec(page.content)) !== null) {
+                categories.add(match[1].trim());
+            }
+        }
+        
+        return Array.from(categories).sort();
+    }
+    
+    /**
+     * Get pages that belong to a specific category
+     * @param {string} categoryName - Category name
+     * @returns {Array} Array of page titles
+     */
+    getPagesInCategory(categoryName) {
+        const pages = this.getAllPages();
+        const pagesInCategory = [];
+        const categoryRegex = new RegExp(`\\[\\[분류:${this.escapeRegex(categoryName)}\\]\\]`, 'gi');
+        
+        for (const [title, page] of Object.entries(pages)) {
+            if (categoryRegex.test(page.content)) {
+                pagesInCategory.push(title);
+            }
+        }
+        
+        return pagesInCategory.sort();
+    }
+    
+    /**
+     * Get categories that a page belongs to
+     * @param {string} pageTitle - Page title
+     * @returns {Array} Array of category names
+     */
+    getPageCategories(pageTitle) {
+        const page = this.getPage(pageTitle);
+        if (!page) return [];
+        
+        const categories = [];
+        const categoryRegex = /\[\[분류:([^\]]+)\]\]/g;
+        let match;
+        
+        while ((match = categoryRegex.exec(page.content)) !== null) {
+            categories.push(match[1].trim());
+        }
+        
+        return [...new Set(categories)]; // Remove duplicates
+    }
+    
+    /**
+     * Check if a page is a category page
+     * @param {string} pageTitle - Page title
+     * @returns {boolean} Whether the page is a category page
+     */
+    isCategoryPage(pageTitle) {
+        return pageTitle.startsWith('분류:');
+    }
+    
+    /**
+     * Get category name from category page title
+     * @param {string} pageTitle - Category page title
+     * @returns {string|null} Category name or null if not a category page
+     */
+    getCategoryNameFromTitle(pageTitle) {
+        if (this.isCategoryPage(pageTitle)) {
+            return pageTitle.substring(3); // Remove '분류:' prefix
+        }
+        return null;
+    }
+    
+    /**
+     * Escape regex special characters
+     * @param {string} text - Text to escape
+     * @returns {string} Escaped text
+     */
+    escapeRegex(text) {
+        return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
 }
 
 // Export for use in other modules

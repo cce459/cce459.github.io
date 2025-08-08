@@ -158,6 +158,16 @@ class WikiApp {
                 this.navigateToPage(pageName);
             }
         });
+        
+        // Handle category links
+        document.addEventListener('click', (e) => {
+            const categoryElement = e.target.closest('.category-link');
+            if (categoryElement) {
+                e.preventDefault();
+                const categoryPage = categoryElement.dataset.category;
+                this.navigateToPage(categoryPage);
+            }
+        });
 
         // Handle navigation events from search
         document.addEventListener('navigate-to-page', (e) => {
@@ -287,7 +297,14 @@ class WikiApp {
             
             // Update view
             this.elements.pageTitle.textContent = page.title;
-            this.elements.pageContent.innerHTML = this.renderer.render(page.content);
+            
+            // Check if this is a category page and render accordingly
+            if (this.storage.isCategoryPage(page.title)) {
+                this.elements.pageContent.innerHTML = this.renderCategoryPage(page);
+            } else {
+                this.elements.pageContent.innerHTML = this.renderer.render(page.content);
+            }
+            
             this.updateLastModified(page.modified);
             
             // Update edit form
@@ -408,7 +425,15 @@ class WikiApp {
      */
     updatePreview() {
         const content = this.elements.pageEditor.value;
-        this.elements.previewContent.innerHTML = this.renderer.render(content);
+        const title = this.elements.pageTitleInput.value.trim();
+        
+        // Check if this is a category page for preview
+        if (this.storage.isCategoryPage(title)) {
+            const mockPage = { title, content };
+            this.elements.previewContent.innerHTML = this.renderCategoryPage(mockPage);
+        } else {
+            this.elements.previewContent.innerHTML = this.renderer.render(content);
+        }
     }
 
     /**
@@ -432,7 +457,14 @@ class WikiApp {
             
             // Update view
             this.elements.pageTitle.textContent = title;
-            this.elements.pageContent.innerHTML = this.renderer.render(content);
+            
+            // Check if this is a category page and render accordingly
+            if (this.storage.isCategoryPage(title)) {
+                const page = this.storage.getPage(title);
+                this.elements.pageContent.innerHTML = this.renderCategoryPage(page);
+            } else {
+                this.elements.pageContent.innerHTML = this.renderer.render(content);
+            }
             
             const page = this.storage.getPage(title);
             this.updateLastModified(page.modified);
@@ -734,6 +766,37 @@ class WikiApp {
         }, 3000);
     }
 
+    /**
+     * Render category page with list of pages in that category
+     * @param {Object} page - Page object
+     * @returns {string} Rendered HTML for category page
+     */
+    renderCategoryPage(page) {
+        const categoryName = this.storage.getCategoryNameFromTitle(page.title);
+        const pagesInCategory = this.storage.getPagesInCategory(categoryName);
+        
+        // Render the page content first
+        let html = this.renderer.render(page.content);
+        
+        // Add category page list
+        html += '<div class="category-page-list">';
+        html += `<h3>"${this.escapeHtml(categoryName)}" 분류에 속한 페이지들</h3>`;
+        
+        if (pagesInCategory.length === 0) {
+            html += '<p><em>이 분류에 속한 페이지가 없습니다.</em></p>';
+        } else {
+            html += '<ul class="category-pages">';
+            for (const pageTitle of pagesInCategory) {
+                html += `<li><a href="#" class="internal-link" data-page="${this.escapeHtml(pageTitle)}">${this.escapeHtml(pageTitle)}</a></li>`;
+            }
+            html += '</ul>';
+            html += `<p class="category-count">총 ${pagesInCategory.length}개의 페이지</p>`;
+        }
+        
+        html += '</div>';
+        return html;
+    }
+    
     /**
      * Escape HTML characters
      * @param {string} text - Text to escape
