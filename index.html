@@ -28,6 +28,61 @@
                         <i data-feather="plus"></i>
                         생성
                     </button>
+                    <div class="settings-dropdown">
+                        <button id="settings-btn" class="btn btn-secondary" title="설정">
+                            <i data-feather="settings"></i>
+                            설정
+                        </button>
+                        <div class="settings-menu" id="settings-menu" style="display: none;">
+                            <div class="settings-section">
+                                <h4>표시</h4>
+                                <div class="setting-item">
+                                    <label class="setting-label">
+                                        <span>다크 모드</span>
+                                        <input type="checkbox" id="dark-mode-toggle" class="setting-checkbox">
+                                        <span class="setting-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="settings-section">
+                                <h4>페이지 관리</h4>
+                                <button class="setting-button" id="delete-page-btn">
+                                    <i data-feather="trash-2"></i>
+                                    현재 페이지 삭제
+                                </button>
+                                <button class="setting-button" id="page-history-btn">
+                                    <i data-feather="clock"></i>
+                                    페이지 히스토리
+                                </button>
+                            </div>
+                            <div class="settings-section">
+                                <h4>데이터</h4>
+                                <button class="setting-button" id="export-data-btn">
+                                    <i data-feather="download"></i>
+                                    데이터 내보내기
+                                </button>
+                                <button class="setting-button" id="import-data-btn">
+                                    <i data-feather="upload"></i>
+                                    데이터 가져오기
+                                </button>
+                                <input type="file" id="import-file" accept=".json" style="display: none;">
+                            </div>
+                            <div class="settings-section">
+                                <h4>통계</h4>
+                                <button class="setting-button" id="wiki-stats-btn">
+                                    <i data-feather="bar-chart-2"></i>
+                                    위키 통계
+                                </button>
+                            </div>
+                            <div class="settings-section">
+                                <h4>위험</h4>
+                                <button class="setting-button danger" id="clear-all-btn">
+                                    <i data-feather="alert-triangle"></i>
+                                    모든 데이터 삭제
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </header>
@@ -137,6 +192,28 @@
                         <div class="modal-actions">
                             <button id="create-page" class="btn btn-primary">생성</button>
                             <button id="cancel-new-page" class="btn btn-secondary">취소</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Page History Modal -->
+                <div class="modal" id="page-history-modal" style="display: none;">
+                    <div class="modal-content modal-large">
+                        <h3 id="history-title">페이지 히스토리</h3>
+                        <div id="history-content" class="history-list"></div>
+                        <div class="modal-actions">
+                            <button id="close-history" class="btn btn-secondary">닫기</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Wiki Stats Modal -->
+                <div class="modal" id="wiki-stats-modal" style="display: none;">
+                    <div class="modal-content">
+                        <h3>위키 통계</h3>
+                        <div id="stats-content" class="stats-content"></div>
+                        <div class="modal-actions">
+                            <button id="close-stats" class="btn btn-secondary">닫기</button>
                         </div>
                     </div>
                 </div>

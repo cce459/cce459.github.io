@@ -49,6 +49,29 @@ class WikiApp {
             createPage: document.getElementById('create-page'),
             cancelNewPage: document.getElementById('cancel-new-page'),
             
+            // Settings
+            settingsBtn: document.getElementById('settings-btn'),
+            settingsMenu: document.getElementById('settings-menu'),
+            darkModeToggle: document.getElementById('dark-mode-toggle'),
+            deletePageBtn: document.getElementById('delete-page-btn'),
+            pageHistoryBtn: document.getElementById('page-history-btn'),
+            exportDataBtn: document.getElementById('export-data-btn'),
+            importDataBtn: document.getElementById('import-data-btn'),
+            importFile: document.getElementById('import-file'),
+            wikiStatsBtn: document.getElementById('wiki-stats-btn'),
+            clearAllBtn: document.getElementById('clear-all-btn'),
+            
+            // History modal
+            pageHistoryModal: document.getElementById('page-history-modal'),
+            historyTitle: document.getElementById('history-title'),
+            historyContent: document.getElementById('history-content'),
+            closeHistory: document.getElementById('close-history'),
+            
+            // Stats modal
+            wikiStatsModal: document.getElementById('wiki-stats-modal'),
+            statsContent: document.getElementById('stats-content'),
+            closeStats: document.getElementById('close-stats'),
+            
             // Loading
             loading: document.getElementById('loading')
         };
@@ -172,6 +195,19 @@ class WikiApp {
         // Handle navigation events from search
         document.addEventListener('navigate-to-page', (e) => {
             this.navigateToPage(e.detail.pageName);
+        });
+        
+        // Settings menu events
+        this.setupSettingsEvents();
+        
+        // Initialize dark mode from localStorage
+        this.initializeDarkMode();
+        
+        // Click outside to close settings menu
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.settings-dropdown')) {
+                this.closeSettingsMenu();
+            }
         });
     }
 
@@ -795,6 +831,295 @@ class WikiApp {
         
         html += '</div>';
         return html;
+    }
+    
+    /**
+     * Setup settings menu events
+     */
+    setupSettingsEvents() {
+        // Settings menu toggle
+        this.elements.settingsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleSettingsMenu();
+        });
+        
+        // Dark mode toggle
+        this.elements.darkModeToggle.addEventListener('change', () => {
+            this.toggleDarkMode();
+        });
+        
+        // Delete page
+        this.elements.deletePageBtn.addEventListener('click', () => {
+            this.deletePage();
+        });
+        
+        // Page history
+        this.elements.pageHistoryBtn.addEventListener('click', () => {
+            this.showPageHistory();
+        });
+        
+        // Export data
+        this.elements.exportDataBtn.addEventListener('click', () => {
+            this.exportData();
+        });
+        
+        // Import data
+        this.elements.importDataBtn.addEventListener('click', () => {
+            this.elements.importFile.click();
+        });
+        
+        this.elements.importFile.addEventListener('change', (e) => {
+            this.importData(e.target.files[0]);
+        });
+        
+        // Wiki stats
+        this.elements.wikiStatsBtn.addEventListener('click', () => {
+            this.showWikiStats();
+        });
+        
+        // Clear all data
+        this.elements.clearAllBtn.addEventListener('click', () => {
+            this.clearAllData();
+        });
+        
+        // Modal close events
+        this.elements.closeHistory.addEventListener('click', () => {
+            this.elements.pageHistoryModal.style.display = 'none';
+        });
+        
+        this.elements.closeStats.addEventListener('click', () => {
+            this.elements.wikiStatsModal.style.display = 'none';
+        });
+        
+        // Close modals on background click
+        [this.elements.pageHistoryModal, this.elements.wikiStatsModal].forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        });
+    }
+    
+    /**
+     * Initialize dark mode from localStorage
+     */
+    initializeDarkMode() {
+        const isDarkMode = localStorage.getItem('wiki-dark-mode') === 'true';
+        this.elements.darkModeToggle.checked = isDarkMode;
+        if (isDarkMode) {
+            document.body.classList.add('dark-mode');
+        }
+    }
+    
+    /**
+     * Toggle settings menu
+     */
+    toggleSettingsMenu() {
+        const isVisible = this.elements.settingsMenu.style.display === 'block';
+        this.elements.settingsMenu.style.display = isVisible ? 'none' : 'block';
+    }
+    
+    /**
+     * Close settings menu
+     */
+    closeSettingsMenu() {
+        this.elements.settingsMenu.style.display = 'none';
+    }
+    
+    /**
+     * Toggle dark mode
+     */
+    toggleDarkMode() {
+        const isDarkMode = this.elements.darkModeToggle.checked;
+        document.body.classList.toggle('dark-mode', isDarkMode);
+        localStorage.setItem('wiki-dark-mode', isDarkMode.toString());
+        this.showNotification(
+            isDarkMode ? '다크 모드가 활성화되었습니다.' : '라이트 모드가 활성화되었습니다.',
+            'success'
+        );
+    }
+    
+    /**
+     * Delete current page
+     */
+    deletePage() {
+        if (this.currentPage === '대문') {
+            this.showNotification('대문 페이지는 삭제할 수 없습니다.', 'warning');
+            return;
+        }
+        
+        if (!confirm(`정말로 "${this.currentPage}" 페이지를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) {
+            return;
+        }
+        
+        if (this.storage.deletePage(this.currentPage)) {
+            this.showNotification('페이지가 삭제되었습니다.', 'success');
+            this.navigateToPage('대문');
+        } else {
+            this.showNotification('페이지 삭제에 실패했습니다.', 'error');
+        }
+        
+        this.closeSettingsMenu();
+    }
+    
+    /**
+     * Show page history
+     */
+    showPageHistory() {
+        const history = this.storage.getPageHistory(this.currentPage);
+        this.elements.historyTitle.textContent = `"${this.currentPage}" 페이지 히스토리`;
+        
+        if (history.length === 0) {
+            this.elements.historyContent.innerHTML = '<p><em>이 페이지에 대한 히스토리가 없습니다.</em></p>';
+        } else {
+            const historyHtml = history.map((item, index) => {
+                const date = new Date(item.archivedAt);
+                return `
+                    <div class="history-item">
+                        <div class="history-meta">
+                            <span>버전 ${item.version} (${date.toLocaleString()})</span>
+                            <span>${item.content.length}자</span>
+                        </div>
+                        <div class="history-content">${this.escapeHtml(item.content.substring(0, 200))}${item.content.length > 200 ? '...' : ''}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            this.elements.historyContent.innerHTML = historyHtml;
+        }
+        
+        this.elements.pageHistoryModal.style.display = 'flex';
+        this.closeSettingsMenu();
+    }
+    
+    /**
+     * Export data
+     */
+    exportData() {
+        try {
+            const data = this.storage.exportData();
+            const dataStr = JSON.stringify(data, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `wiki-backup-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            
+            this.showNotification('데이터가 성공적으로 내보내졌습니다.', 'success');
+        } catch (error) {
+            console.error('Export error:', error);
+            this.showNotification('데이터 내보내기에 실패했습니다.', 'error');
+        }
+        
+        this.closeSettingsMenu();
+    }
+    
+    /**
+     * Import data
+     * @param {File} file - File to import
+     */
+    async importData(file) {
+        if (!file) return;
+        
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+            
+            if (!confirm('기존 데이터를 모두 덮어쓰시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+                return;
+            }
+            
+            if (this.storage.importData(data)) {
+                this.showNotification('데이터가 성공적으로 가져와졌습니다.', 'success');
+                this.loadPage('대문');
+                this.updateNavigation();
+                this.updateRecentList();
+            } else {
+                this.showNotification('데이터 가져오기에 실패했습니다.', 'error');
+            }
+        } catch (error) {
+            console.error('Import error:', error);
+            this.showNotification('올바르지 않은 파일 형식입니다.', 'error');
+        }
+        
+        // Reset file input
+        this.elements.importFile.value = '';
+        this.closeSettingsMenu();
+    }
+    
+    /**
+     * Show wiki statistics
+     */
+    showWikiStats() {
+        const stats = this.storage.getStats();
+        const categories = this.storage.getAllCategories();
+        
+        const statsHtml = `
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">${stats.pageCount}</div>
+                    <div class="stat-label">총 페이지 수</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${Math.round(stats.totalChars / 1024)}KB</div>
+                    <div class="stat-label">총 콘텐츠 크기</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${categories.length}</div>
+                    <div class="stat-label">카테고리 수</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${Math.round(stats.storageUsed / 1024)}KB</div>
+                    <div class="stat-label">저장소 사용량</div>
+                </div>
+            </div>
+            
+            ${categories.length > 0 ? `
+                <h4>카테고리 목록</h4>
+                <ul class="stats-list">
+                    ${categories.map(cat => {
+                        const count = this.storage.getPagesInCategory(cat).length;
+                        return `<li><span>${cat}</span><span>${count}개 페이지</span></li>`;
+                    }).join('')}
+                </ul>
+            ` : ''}
+            
+            <h4>기타 정보</h4>
+            <ul class="stats-list">
+                <li><span>마지막 수정</span><span>${stats.lastModified ? new Date(stats.lastModified).toLocaleString() : '없음'}</span></li>
+                <li><span>평균 페이지 크기</span><span>${Math.round(stats.totalChars / stats.pageCount)}자</span></li>
+            </ul>
+        `;
+        
+        this.elements.statsContent.innerHTML = statsHtml;
+        this.elements.wikiStatsModal.style.display = 'flex';
+        this.closeSettingsMenu();
+    }
+    
+    /**
+     * Clear all data
+     */
+    clearAllData() {
+        if (!confirm('정말로 모든 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+            return;
+        }
+        
+        if (!confirm('마지막 확인입니다. 모든 페이지, 히스토리, 설정이 삭제됩니다. 계속하시겠습니까?')) {
+            return;
+        }
+        
+        if (this.storage.clearAll()) {
+            this.showNotification('모든 데이터가 삭제되었습니다.', 'success');
+            this.loadPage('대문');
+            this.updateNavigation();
+            this.updateRecentList();
+        } else {
+            this.showNotification('데이터 삭제에 실패했습니다.', 'error');
+        }
+        
+        this.closeSettingsMenu();
     }
     
     /**
