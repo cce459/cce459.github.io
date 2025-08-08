@@ -6,7 +6,7 @@ This is a client-side personal wiki application built with vanilla JavaScript. I
 
 Preferred communication style: Simple, everyday language.
 Main page renamed to '대문' (Korean for "Main Page") at user request.
-User requested new features: page templates, favorites system, and enhanced search with previews and highlighting.
+User requested new features: page templates, favorites system, enhanced search with previews and highlighting, and commenting system for pages.
 
 # System Architecture
 
@@ -27,8 +27,9 @@ User requested new features: page templates, favorites system, and enhanced sear
 - **Real-Time Editing**: Toggle between view and edit modes with live preview capabilities
 - **Version Tracking**: Basic history tracking for page modifications
 - **Internal Linking**: Support for linking between wiki pages using bracket notation
-- **Tag System**: Hashtag-based tagging with #tagname syntax for content organization
+- **Tag System**: Hashtag-based tagging with #tagname syntax for content organization (supports spaces in tag names)
 - **Backlink Detection**: Automatic discovery and display of pages linking to current page
+- **Comments System**: Page-level commenting with author attribution, editing, and deletion capabilities
 
 ## Search and Navigation
 - **Enhanced Search**: Advanced client-side search with content previews, highlighting, and scoring

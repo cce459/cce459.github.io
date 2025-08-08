@@ -108,6 +108,13 @@ class WikiApp {
             // Templates
             pageTemplate: document.getElementById('page-template'),
             
+            // Comments
+            commentsSection: document.getElementById('comments-section'),
+            commentsList: document.getElementById('comments-list'),
+            commentInput: document.getElementById('comment-input'),
+            commentAuthor: document.getElementById('comment-author'),
+            addCommentBtn: document.getElementById('add-comment-btn'),
+            
             // Loading
             loading: document.getElementById('loading')
         };
@@ -127,6 +134,7 @@ class WikiApp {
             this.setupAutoSave();
             this.setupTagsAndLinksEvents();
             this.setupFavoritesEvents();
+            this.setupCommentsEvents();
             
             // Load page after everything is set up
             setTimeout(() => {
@@ -134,6 +142,7 @@ class WikiApp {
                 this.updateNavigation();
                 this.updatePopularTags();
                 this.updateFavoritesList();
+                this.updateComments();
             }, 100);
         } catch (error) {
             console.error('Application initialization error:', error);
@@ -385,6 +394,9 @@ class WikiApp {
             
             // Update favorite button state
             this.updateFavoriteButton(pageName);
+            
+            // Update comments
+            this.updateComments();
             
             // Update URL
             if (pushState) {
@@ -1734,6 +1746,136 @@ class WikiApp {
                 this.createPageAndEdit(pageTitle);
             }
         }
+    }
+
+    /**
+     * Setup comments event listeners
+     */
+    setupCommentsEvents() {
+        if (this.elements.addCommentBtn) {
+            this.elements.addCommentBtn.addEventListener('click', () => {
+                this.addComment();
+            });
+        }
+
+        if (this.elements.commentInput) {
+            this.elements.commentInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && e.ctrlKey) {
+                    this.addComment();
+                }
+            });
+        }
+    }
+
+    /**
+     * Add a new comment
+     */
+    addComment() {
+        const content = this.elements.commentInput.value.trim();
+        const author = this.elements.commentAuthor.value.trim() || '익명';
+        
+        if (!content) {
+            this.showNotification('댓글 내용을 입력해주세요.', 'warning');
+            return;
+        }
+
+        const comment = this.storage.addComment(this.currentPage, content, author);
+        if (comment) {
+            this.elements.commentInput.value = '';
+            this.elements.commentAuthor.value = '';
+            this.updateComments();
+            this.showNotification('댓글이 추가되었습니다.', 'success');
+        } else {
+            this.showNotification('댓글 추가 중 오류가 발생했습니다.', 'error');
+        }
+    }
+
+    /**
+     * Edit a comment
+     * @param {string} commentId - Comment ID
+     */
+    editComment(commentId) {
+        const comments = this.storage.getPageComments(this.currentPage);
+        const comment = comments.find(c => c.id === commentId);
+        
+        if (!comment) return;
+
+        const newContent = prompt('댓글을 수정하세요:', comment.content);
+        if (newContent !== null && newContent.trim() !== comment.content) {
+            if (this.storage.updateComment(this.currentPage, commentId, newContent.trim())) {
+                this.updateComments();
+                this.showNotification('댓글이 수정되었습니다.', 'success');
+            } else {
+                this.showNotification('댓글 수정 중 오류가 발생했습니다.', 'error');
+            }
+        }
+    }
+
+    /**
+     * Delete a comment
+     * @param {string} commentId - Comment ID
+     */
+    deleteComment(commentId) {
+        if (confirm('정말로 이 댓글을 삭제하시겠습니까?')) {
+            if (this.storage.deleteComment(this.currentPage, commentId)) {
+                this.updateComments();
+                this.showNotification('댓글이 삭제되었습니다.', 'success');
+            } else {
+                this.showNotification('댓글 삭제 중 오류가 발생했습니다.', 'error');
+            }
+        }
+    }
+
+    /**
+     * Update comments section
+     */
+    updateComments() {
+        if (!this.elements.commentsList) return;
+
+        const comments = this.storage.getPageComments(this.currentPage);
+        
+        if (comments.length === 0) {
+            this.elements.commentsList.innerHTML = '<div class="no-comments">첫 번째 댓글을 작성해보세요!</div>';
+            return;
+        }
+
+        const html = comments.map(comment => {
+            const createdDate = new Date(comment.created).toLocaleString('ko-KR');
+            const modifiedDate = comment.modified !== comment.created ? 
+                `(수정됨: ${new Date(comment.modified).toLocaleString('ko-KR')})` : '';
+            
+            return `
+                <div class="comment" data-comment-id="${comment.id}">
+                    <div class="comment-header">
+                        <span class="comment-author">${this.escapeHtml(comment.author)}</span>
+                        <span class="comment-date">${createdDate} ${modifiedDate}</span>
+                        <div class="comment-actions">
+                            <button class="comment-edit-btn" onclick="app.editComment('${comment.id}')" title="편집">
+                                <i data-feather="edit-2"></i>
+                            </button>
+                            <button class="comment-delete-btn" onclick="app.deleteComment('${comment.id}')" title="삭제">
+                                <i data-feather="trash-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="comment-content">${this.escapeHtml(comment.content).replace(/\n/g, '<br>')}</div>
+                </div>
+            `;
+        }).join('');
+
+        this.elements.commentsList.innerHTML = html;
+        feather.replace();
+    }
+
+    /**
+     * Escape HTML characters
+     * @param {string} text - Text to escape
+     * @returns {string} Escaped text
+     */
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 }
 

@@ -11,6 +11,7 @@ class WikiStorage {
         this.tagsKey = 'wiki-tags';
         this.favoritesKey = 'wiki-favorites';
         this.templatesKey = 'wiki-templates';
+        this.commentsKey = 'wiki-comments';
         this.initializeStorage();
     }
 
@@ -1222,6 +1223,129 @@ class WikiStorage {
         });
         
         return Array.from(suggestions).slice(0, limit);
+    }
+
+    /**
+     * Get comments for a page
+     * @param {string} pageTitle - Page title
+     * @returns {Array} Array of comments
+     */
+    getPageComments(pageTitle) {
+        try {
+            const comments = localStorage.getItem(this.commentsKey);
+            const allComments = comments ? JSON.parse(comments) : {};
+            return allComments[pageTitle] || [];
+        } catch (error) {
+            console.error('Error loading comments:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Add a comment to a page
+     * @param {string} pageTitle - Page title
+     * @param {string} content - Comment content
+     * @param {string} author - Author name (optional)
+     * @returns {Object} Added comment
+     */
+    addComment(pageTitle, content, author = '익명') {
+        try {
+            const comments = localStorage.getItem(this.commentsKey);
+            const allComments = comments ? JSON.parse(comments) : {};
+            
+            if (!allComments[pageTitle]) {
+                allComments[pageTitle] = [];
+            }
+
+            const comment = {
+                id: Date.now().toString(),
+                content: content.trim(),
+                author: author.trim(),
+                created: Date.now(),
+                modified: Date.now()
+            };
+
+            allComments[pageTitle].push(comment);
+            localStorage.setItem(this.commentsKey, JSON.stringify(allComments));
+            
+            return comment;
+        } catch (error) {
+            console.error('Error adding comment:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Update a comment
+     * @param {string} pageTitle - Page title
+     * @param {string} commentId - Comment ID
+     * @param {string} content - New content
+     * @returns {boolean} Success status
+     */
+    updateComment(pageTitle, commentId, content) {
+        try {
+            const comments = localStorage.getItem(this.commentsKey);
+            const allComments = comments ? JSON.parse(comments) : {};
+            
+            if (!allComments[pageTitle]) return false;
+
+            const comment = allComments[pageTitle].find(c => c.id === commentId);
+            if (!comment) return false;
+
+            comment.content = content.trim();
+            comment.modified = Date.now();
+
+            localStorage.setItem(this.commentsKey, JSON.stringify(allComments));
+            return true;
+        } catch (error) {
+            console.error('Error updating comment:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Delete a comment
+     * @param {string} pageTitle - Page title
+     * @param {string} commentId - Comment ID
+     * @returns {boolean} Success status
+     */
+    deleteComment(pageTitle, commentId) {
+        try {
+            const comments = localStorage.getItem(this.commentsKey);
+            const allComments = comments ? JSON.parse(comments) : {};
+            
+            if (!allComments[pageTitle]) return false;
+
+            const index = allComments[pageTitle].findIndex(c => c.id === commentId);
+            if (index === -1) return false;
+
+            allComments[pageTitle].splice(index, 1);
+            localStorage.setItem(this.commentsKey, JSON.stringify(allComments));
+            return true;
+        } catch (error) {
+            console.error('Error deleting comment:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Get total comment count for all pages
+     * @returns {number} Total comment count
+     */
+    getTotalCommentCount() {
+        try {
+            const comments = localStorage.getItem(this.commentsKey);
+            const allComments = comments ? JSON.parse(comments) : {};
+            
+            let total = 0;
+            for (const pageComments of Object.values(allComments)) {
+                total += pageComments.length;
+            }
+            return total;
+        } catch (error) {
+            console.error('Error counting comments:', error);
+            return 0;
+        }
     }
 }
 

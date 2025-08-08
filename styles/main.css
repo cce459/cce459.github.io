@@ -1655,6 +1655,136 @@ del {
     font-size: 0.75rem;
 }
 
+/* Comments Section */
+.comments-section {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.comments-section h4 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    color: var(--text-color);
+}
+
+.comments-list {
+    margin-bottom: 1.5rem;
+}
+
+.comment {
+    background-color: var(--hover-color);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-left: 3px solid var(--accent-color);
+}
+
+.comment-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.comment-author {
+    font-weight: 600;
+    color: var(--accent-color);
+}
+
+.comment-date {
+    color: var(--text-muted);
+}
+
+.comment-actions {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.comment-edit-btn,
+.comment-delete-btn {
+    background: none;
+    border: none;
+    padding: 0.25rem;
+    cursor: pointer;
+    border-radius: 3px;
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+}
+
+.comment-edit-btn:hover {
+    color: var(--accent-color);
+    background-color: var(--background-color);
+}
+
+.comment-delete-btn:hover {
+    color: #dc3545;
+    background-color: var(--background-color);
+}
+
+.comment-content {
+    line-height: 1.5;
+    color: var(--text-color);
+}
+
+.comment-form {
+    background-color: var(--hover-color);
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+}
+
+.comment-input {
+    width: 100%;
+    min-height: 80px;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background-color: var(--background-color);
+    color: var(--text-color);
+    font-family: inherit;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    resize: vertical;
+    margin-bottom: 0.75rem;
+}
+
+.comment-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+.comment-form-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.comment-author-input {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background-color: var(--background-color);
+    color: var(--text-color);
+    font-size: 0.9rem;
+}
+
+.comment-author-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+.no-comments {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
 /* Enhanced lists */
 .page-content ul,
 .page-content ol,
