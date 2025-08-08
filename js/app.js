@@ -371,6 +371,9 @@ class WikiApp {
             // Update navigation
             this.updateNavigation();
             
+            // Update page footer with tags and links
+            this.updatePageFooter(page);
+            
             // Update URL
             if (pushState) {
                 history.pushState({ page: pageName }, '', `#${encodeURIComponent(pageName)}`);
@@ -379,6 +382,7 @@ class WikiApp {
             // Update recent pages
             this.storage.addToRecent(pageName);
             this.updateRecentList();
+            this.updatePopularTags();
             
             // Exit edit mode
             if (this.isEditMode) {
@@ -1324,9 +1328,269 @@ class WikiApp {
         div.textContent = text;
         return div.innerHTML;
     }
+
+    /**
+     * Setup tags and links event listeners
+     */
+    setupTagsAndLinksEvents() {
+        // Tagged pages modal events
+        if (this.elements.closeTaggedPages) {
+            this.elements.closeTaggedPages.addEventListener('click', () => {
+                this.hideTaggedPagesModal();
+            });
+        }
+
+        // Backlinks modal events
+        if (this.elements.closeBacklinks) {
+            this.elements.closeBacklinks.addEventListener('click', () => {
+                this.hideBacklinksModal();
+            });
+        }
+
+        // Modal backdrop clicks
+        if (this.elements.taggedPagesModal) {
+            this.elements.taggedPagesModal.addEventListener('click', (e) => {
+                if (e.target === this.elements.taggedPagesModal) {
+                    this.hideTaggedPagesModal();
+                }
+            });
+        }
+
+        if (this.elements.backlinksModal) {
+            this.elements.backlinksModal.addEventListener('click', (e) => {
+                if (e.target === this.elements.backlinksModal) {
+                    this.hideBacklinksModal();
+                }
+            });
+        }
+    }
+
+    /**
+     * Update page footer with tags and links
+     * @param {Object} page - Page object
+     */
+    updatePageFooter(page) {
+        if (!page) return;
+        
+        // Update page tags
+        this.updatePageTags(page);
+        
+        // Update backlinks
+        this.updateBacklinks(page.title);
+        
+        // Update outgoing links
+        this.updateOutgoingLinks(page.title);
+    }
+
+    /**
+     * Update page tags display
+     * @param {Object} page - Page object
+     */
+    updatePageTags(page) {
+        if (!this.elements.pageTags) return;
+        
+        const tags = page.tags || [];
+        
+        if (tags.length === 0) {
+            this.elements.pageTags.style.display = 'none';
+            return;
+        }
+        
+        this.elements.pageTags.style.display = 'block';
+        this.elements.pageTags.innerHTML = `
+            <h4>태그</h4>
+            <div class="tags-list">
+                ${tags.map(tag => 
+                    `<span class="wiki-tag" data-tag="${tag}" onclick="app.showTaggedPages('${tag}')">#${tag}</span>`
+                ).join('')}
+            </div>
+        `;
+    }
+
+    /**
+     * Update backlinks display
+     * @param {string} pageTitle - Current page title
+     */
+    updateBacklinks(pageTitle) {
+        if (!this.elements.backlinksSection) return;
+        
+        const backlinks = this.storage.getBacklinks(pageTitle);
+        
+        if (backlinks.length === 0) {
+            this.elements.backlinksSection.innerHTML = `
+                <h4><i data-feather="arrow-left"></i> 백링크 <span class="link-count">(0)</span></h4>
+                <p class="text-muted">이 페이지를 링크하는 페이지가 없습니다.</p>
+            `;
+        } else {
+            const displayLinks = backlinks.slice(0, 5);
+            const remainingCount = backlinks.length - 5;
+            
+            this.elements.backlinksSection.innerHTML = `
+                <h4><i data-feather="arrow-left"></i> 백링크 <span class="link-count">(${backlinks.length})</span></h4>
+                <ul class="backlinks-list">
+                    ${displayLinks.map(link => 
+                        `<li><a href="#" onclick="app.navigateToPage('${link.title}')">${link.title}</a></li>`
+                    ).join('')}
+                </ul>
+                ${remainingCount > 0 ? 
+                    `<button class="show-more-links" onclick="app.showBacklinks('${pageTitle}')">
+                        ${remainingCount}개 더 보기
+                    </button>` : ''
+                }
+            `;
+        }
+        
+        // Re-initialize feather icons for this section
+        feather.replace();
+    }
+
+    /**
+     * Update outgoing links display
+     * @param {string} pageTitle - Current page title
+     */
+    updateOutgoingLinks(pageTitle) {
+        if (!this.elements.outgoingLinksSection) return;
+        
+        const outgoingLinks = this.storage.getOutgoingLinks(pageTitle);
+        
+        if (outgoingLinks.length === 0) {
+            this.elements.outgoingLinksSection.innerHTML = `
+                <h4><i data-feather="arrow-right"></i> 나가는 링크 <span class="link-count">(0)</span></h4>
+                <p class="text-muted">이 페이지에서 링크하는 페이지가 없습니다.</p>
+            `;
+        } else {
+            const displayLinks = outgoingLinks.slice(0, 5);
+            const remainingCount = outgoingLinks.length - 5;
+            
+            this.elements.outgoingLinksSection.innerHTML = `
+                <h4><i data-feather="arrow-right"></i> 나가는 링크 <span class="link-count">(${outgoingLinks.length})</span></h4>
+                <ul class="outgoing-links-list">
+                    ${displayLinks.map(linkTitle => 
+                        `<li><a href="#" onclick="app.navigateToPage('${linkTitle}')">${linkTitle}</a></li>`
+                    ).join('')}
+                </ul>
+                ${remainingCount > 0 ? 
+                    `<button class="show-more-links" onclick="app.showOutgoingLinks('${pageTitle}')">
+                        ${remainingCount}개 더 보기
+                    </button>` : ''
+                }
+            `;
+        }
+        
+        // Re-initialize feather icons for this section
+        feather.replace();
+    }
+
+    /**
+     * Update popular tags in sidebar
+     */
+    updatePopularTags() {
+        if (!this.elements.popularTags) return;
+        
+        const allTags = this.storage.getAllTags();
+        const topTags = allTags.slice(0, 10);
+        
+        if (topTags.length === 0) {
+            this.elements.popularTags.innerHTML = '<p class="text-muted">태그가 없습니다.</p>';
+            return;
+        }
+        
+        this.elements.popularTags.innerHTML = topTags.map(({ tag, count }) => 
+            `<span class="wiki-tag" data-count="${count}" onclick="app.showTaggedPages('${tag}')">#${tag}</span>`
+        ).join('');
+    }
+
+    /**
+     * Show tagged pages modal
+     * @param {string} tag - Tag to show pages for
+     */
+    showTaggedPages(tag) {
+        if (!this.elements.taggedPagesModal) return;
+        
+        const taggedPages = this.storage.getPagesByTag(tag);
+        
+        this.elements.taggedPagesTitle.textContent = `#${tag} 태그된 페이지 (${taggedPages.length})`;
+        
+        if (taggedPages.length === 0) {
+            this.elements.taggedPagesContent.innerHTML = '<p class="text-muted">이 태그를 사용하는 페이지가 없습니다.</p>';
+        } else {
+            this.elements.taggedPagesContent.innerHTML = taggedPages.map(({ title, page }) => {
+                const excerpt = page.content.substring(0, 150) + (page.content.length > 150 ? '...' : '');
+                const modifiedDate = new Date(page.modified).toLocaleDateString('ko-KR');
+                
+                return `
+                    <div class="tagged-page-item">
+                        <h4><a href="#" onclick="app.navigateToPage('${title}'); app.hideTaggedPagesModal();">${title}</a></h4>
+                        <div class="page-excerpt">${excerpt}</div>
+                        <div class="page-meta-info">
+                            <span>수정: ${modifiedDate}</span>
+                            <span>버전: ${page.version || 1}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        this.elements.taggedPagesModal.style.display = 'block';
+    }
+
+    /**
+     * Hide tagged pages modal
+     */
+    hideTaggedPagesModal() {
+        if (this.elements.taggedPagesModal) {
+            this.elements.taggedPagesModal.style.display = 'none';
+        }
+    }
+
+    /**
+     * Show backlinks modal
+     * @param {string} pageTitle - Page title to show backlinks for
+     */
+    showBacklinks(pageTitle) {
+        if (!this.elements.backlinksModal) return;
+        
+        const backlinks = this.storage.getBacklinks(pageTitle);
+        
+        this.elements.backlinksTitle.textContent = `"${pageTitle}" 백링크 (${backlinks.length})`;
+        
+        if (backlinks.length === 0) {
+            this.elements.backlinksContent.innerHTML = '<p class="text-muted">이 페이지를 링크하는 페이지가 없습니다.</p>';
+        } else {
+            this.elements.backlinksContent.innerHTML = backlinks.map(({ title, page }) => {
+                const excerpt = page.content.substring(0, 150) + (page.content.length > 150 ? '...' : '');
+                const modifiedDate = new Date(page.modified).toLocaleDateString('ko-KR');
+                
+                return `
+                    <div class="backlink-item">
+                        <h4><a href="#" onclick="app.navigateToPage('${title}'); app.hideBacklinksModal();">${title}</a></h4>
+                        <div class="page-excerpt">${excerpt}</div>
+                        <div class="page-meta-info">
+                            <span>수정: ${modifiedDate}</span>
+                            <span>버전: ${page.version || 1}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        this.elements.backlinksModal.style.display = 'block';
+    }
+
+    /**
+     * Hide backlinks modal
+     */
+    hideBacklinksModal() {
+        if (this.elements.backlinksModal) {
+            this.elements.backlinksModal.style.display = 'none';
+        }
+    }
 }
+
+// Make app globally available
+window.app = null;
 
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    new WikiApp();
+    window.app = new WikiApp();
 });

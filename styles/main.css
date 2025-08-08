@@ -1538,9 +1538,6 @@ del {
         grid-template-columns: 1fr;
     }
 }
-    text-align: center;
-    font-style: italic;
-}
 
 /* Enhanced lists */
 .page-content ul,
