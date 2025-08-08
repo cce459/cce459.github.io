@@ -13,7 +13,7 @@ class WikiRenderer {
      * @returns {string} Rendered HTML
      */
     render(content) {
-        if (!content) return '<p><em>This page is empty. Click Edit to add content.</em></p>';
+        if (!content) return '<p><em>이 페이지는 비어있습니다. 편집 버튼을 클릭하여 내용을 추가하세요.</em></p>';
 
         let html = content;
         
@@ -24,6 +24,7 @@ class WikiRenderer {
         html = this.renderInlineCode(html);
         html = this.renderBold(html);
         html = this.renderItalic(html);
+        html = this.renderBlockquotes(html);
         html = this.renderLinks(html);
         html = this.renderLists(html);
         html = this.renderParagraphs(html);
@@ -177,21 +178,30 @@ class WikiRenderer {
         for (const line of lines) {
             const trimmed = line.trim();
             
-            // Skip if line is already HTML or empty
-            if (!trimmed || 
+            // Check if line should break paragraph
+            const isBlockElement = !trimmed || 
                 trimmed.startsWith('<') || 
                 trimmed.startsWith('#') ||
-                trimmed === '<hr>') {
-                
+                trimmed === '<hr>' ||
+                trimmed.startsWith('- ') ||
+                trimmed.startsWith('* ') ||
+                trimmed.match(/^\d+\. /) ||
+                trimmed.startsWith('> ') ||
+                trimmed.startsWith('```');
+            
+            if (isBlockElement) {
+                // Finish current paragraph if exists
                 if (currentParagraph) {
                     result.push(`<p>${currentParagraph.trim()}</p>`);
                     currentParagraph = '';
                 }
                 
+                // Add the block element if not empty
                 if (trimmed) {
                     result.push(line);
                 }
             } else {
+                // Add to current paragraph
                 if (currentParagraph) {
                     currentParagraph += ' ';
                 }
@@ -284,6 +294,45 @@ class WikiRenderer {
      */
     escapeRegex(text) {
         return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    /**
+     * Render blockquotes (>)
+     * @param {string} content - Content to process
+     * @returns {string} Processed content
+     */
+    renderBlockquotes(content) {
+        const lines = content.split('\n');
+        const result = [];
+        let inBlockquote = false;
+        let blockquoteContent = '';
+
+        for (const line of lines) {
+            const blockquoteMatch = line.match(/^>\s+(.+)$/);
+            
+            if (blockquoteMatch) {
+                if (!inBlockquote) {
+                    inBlockquote = true;
+                }
+                if (blockquoteContent) {
+                    blockquoteContent += ' ';
+                }
+                blockquoteContent += blockquoteMatch[1];
+            } else {
+                if (inBlockquote) {
+                    result.push(`<blockquote>${blockquoteContent}</blockquote>`);
+                    inBlockquote = false;
+                    blockquoteContent = '';
+                }
+                result.push(line);
+            }
+        }
+        
+        if (inBlockquote) {
+            result.push(`<blockquote>${blockquoteContent}</blockquote>`);
+        }
+        
+        return result.join('\n');
     }
 
     /**

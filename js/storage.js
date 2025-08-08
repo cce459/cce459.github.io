@@ -129,16 +129,19 @@ class WikiStorage {
             const now = Date.now();
             
             // Handle page renaming
-            if (oldTitle && oldTitle !== title && pages[oldTitle]) {
-                // Save history of old page
-                this.savePageHistory(oldTitle, pages[oldTitle]);
-                // Delete old page
-                delete pages[oldTitle];
-            }
-            
             // Save history of current version if page exists
             if (pages[title]) {
                 this.savePageHistory(title, pages[title]);
+            }
+            
+            // Handle page renaming
+            if (oldTitle && oldTitle !== title && pages[oldTitle]) {
+                // Save history of old page before deleting
+                this.savePageHistory(oldTitle, pages[oldTitle]);
+                // Delete old page
+                delete pages[oldTitle];
+                // Remove from recent list
+                this.removeFromRecent(oldTitle);
             }
             
             // Create or update page
@@ -369,12 +372,14 @@ class WikiStorage {
      */
     getStorageSize() {
         try {
-            const pages = localStorage.getItem(this.storageKey) || '';
-            const recent = localStorage.getItem(this.recentKey) || '';
-            const history = localStorage.getItem(this.historyKey) || '';
-            const settings = localStorage.getItem(this.settingsKey) || '';
-            
-            return pages.length + recent.length + history.length + settings.length;
+            let totalSize = 0;
+            for (let key in localStorage) {
+                if (key.startsWith('wiki-')) {
+                    const item = localStorage.getItem(key);
+                    totalSize += key.length + (item ? item.length : 0);
+                }
+            }
+            return totalSize;
         } catch (error) {
             return 0;
         }
@@ -427,12 +432,63 @@ class WikiStorage {
             localStorage.removeItem(this.recentKey);
             localStorage.removeItem(this.historyKey);
             localStorage.removeItem(this.settingsKey);
+            localStorage.removeItem('wiki-draft'); // Clear drafts too
             this.initializeStorage();
             return true;
         } catch (error) {
             console.error('Error clearing data:', error);
             return false;
         }
+    }
+    
+    /**
+     * Remove a page from recent list
+     * @param {string} title - Page title to remove
+     */
+    removeFromRecent(title) {
+        try {
+            const recent = this.getRecent();
+            const filtered = recent.filter(t => t !== title);
+            localStorage.setItem(this.recentKey, JSON.stringify(filtered));
+        } catch (error) {
+            console.error('Error removing from recent:', error);
+        }
+    }
+    
+    /**
+     * Check if storage is available and working
+     * @returns {boolean} Whether storage is working
+     */
+    isStorageAvailable() {
+        try {
+            const test = 'storage-test';
+            localStorage.setItem(test, test);
+            localStorage.removeItem(test);
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+    
+    /**
+     * Get storage quota information
+     * @returns {Object} Storage quota info
+     */
+    async getStorageQuota() {
+        if ('storage' in navigator && 'estimate' in navigator.storage) {
+            try {
+                const estimate = await navigator.storage.estimate();
+                return {
+                    quota: estimate.quota,
+                    usage: estimate.usage,
+                    available: estimate.quota - estimate.usage,
+                    percentage: Math.round((estimate.usage / estimate.quota) * 100)
+                };
+            } catch (error) {
+                console.warn('Storage quota estimation failed:', error);
+            }
+        }
+        return null;
     }
 }
 

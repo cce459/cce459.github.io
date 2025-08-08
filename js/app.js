@@ -144,7 +144,9 @@ class WikiApp {
         window.addEventListener('beforeunload', (e) => {
             if (this.hasUnsavedChanges) {
                 e.preventDefault();
-                e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+                const message = '저장되지 않은 변경사항이 있습니다. 정말 나가시겠습니까?';
+                e.returnValue = message;
+                return message;
             }
         });
 
@@ -417,7 +419,7 @@ class WikiApp {
         const content = this.elements.pageEditor.value;
         
         if (!title) {
-            alert('Please enter a page title.');
+            alert('페이지 제목을 입력해주세요.');
             this.elements.pageTitleInput.focus();
             return;
         }
@@ -455,7 +457,7 @@ class WikiApp {
      * Cancel editing
      */
     cancelEdit() {
-        if (this.hasUnsavedChanges && !confirm('You have unsaved changes. Are you sure you want to cancel?')) {
+        if (this.hasUnsavedChanges && !confirm('저장되지 않은 변경사항이 있습니다. 정말 취소하시겠습니까?')) {
             return;
         }
         
@@ -495,13 +497,13 @@ class WikiApp {
         const title = this.elements.newPageTitle.value.trim();
         
         if (!title) {
-            alert('Please enter a page title.');
+            alert('페이지 제목을 입력해주세요.');
             return;
         }
         
         // Check if page already exists
         if (this.storage.getPage(title)) {
-            if (confirm(`Page "${title}" already exists. Do you want to edit it?`)) {
+            if (confirm(`페이지 "${title}"이 이미 존재합니다. 편집하시겠습니까?`)) {
                 this.hideNewPageModal();
                 this.navigateToPage(title);
                 this.setEditMode(true);
@@ -677,30 +679,48 @@ class WikiApp {
         // Create notification element
         const notification = document.createElement('div');
         notification.className = `notification notification-${type}`;
+        
+        // Set background color based on type
+        let backgroundColor;
+        switch (type) {
+            case 'success':
+                backgroundColor = '#4ade80';
+                break;
+            case 'error':
+                backgroundColor = '#ef4444';
+                break;
+            case 'warning':
+                backgroundColor = '#f59e0b';
+                break;
+            default:
+                backgroundColor = '#3b82f6';
+        }
+        
         notification.style.cssText = `
             position: fixed;
             top: 20px;
             right: 20px;
-            background: var(--${type === 'success' ? 'success-color' : type === 'error' ? 'danger-color' : 'primary-color'});
+            background: ${backgroundColor};
             color: white;
             padding: 1rem 1.5rem;
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow-lg);
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
             z-index: 2000;
             max-width: 300px;
             opacity: 0;
             transform: translateX(100%);
             transition: all 0.3s ease;
+            font-weight: 500;
         `;
         notification.textContent = message;
         
         document.body.appendChild(notification);
         
         // Animate in
-        setTimeout(() => {
+        requestAnimationFrame(() => {
             notification.style.opacity = '1';
             notification.style.transform = 'translateX(0)';
-        }, 10);
+        });
         
         // Auto remove
         setTimeout(() => {

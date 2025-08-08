@@ -43,12 +43,13 @@ class WikiSearch {
         });
 
         this.searchInput.addEventListener('blur', (e) => {
-            // Delay hiding to allow clicking on results
-            setTimeout(() => {
-                if (!this.searchResults.contains(document.activeElement)) {
+            // Use a more reliable method to handle blur
+            this.blurTimeout = setTimeout(() => {
+                if (!this.searchResults.contains(document.activeElement) &&
+                    !this.searchResults.matches(':hover')) {
                     this.hideResults();
                 }
-            }, 150);
+            }, 200);
         });
 
         // Keyboard navigation
@@ -60,6 +61,14 @@ class WikiSearch {
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.search-container')) {
                 this.hideResults();
+            }
+        });
+        
+        // Cancel blur timeout when interacting with results
+        this.searchResults.addEventListener('mousedown', () => {
+            if (this.blurTimeout) {
+                clearTimeout(this.blurTimeout);
+                this.blurTimeout = null;
             }
         });
     }
