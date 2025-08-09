@@ -119,19 +119,16 @@ class WikiRenderer {
             const cleanVideoId = videoId.replace(/[^a-zA-Z0-9_-]/g, '');
             if (!cleanVideoId) return match;
             
-            return `<div class="youtube-embed-container">
-                <div class="youtube-loading">동영상을 불러오는 중...</div>
-                <iframe 
-                    class="youtube-embed" 
-                    src="https://www.youtube-nocookie.com/embed/${cleanVideoId}?rel=0&modestbranding=1" 
-                    title="YouTube video: ${cleanVideoId}" 
-                    frameborder="0" 
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                    allowfullscreen
-                    loading="lazy"
-                    onload="this.previousElementSibling.style.display='none';"
-                    onerror="this.previousElementSibling.textContent='동영상을 불러올 수 없습니다.';">
-                </iframe>
+            return `<div class="youtube-embed-wrapper">
+                <div class="youtube-thumbnail" onclick="this.parentNode.innerHTML='<iframe class=\\"youtube-iframe\\" src=\\"https://www.youtube.com/embed/${cleanVideoId}?autoplay=1\\" frameborder=\\"0\\" allowfullscreen></iframe>'">
+                    <img src="https://img.youtube.com/vi/${cleanVideoId}/maxresdefault.jpg" alt="YouTube 동영상 썸네일" onerror="this.src='https://img.youtube.com/vi/${cleanVideoId}/hqdefault.jpg'">
+                    <div class="youtube-play-button">
+                        <svg width="68" height="48" viewBox="0 0 68 48">
+                            <path d="M66.52,7.74c-0.78-2.93-2.49-5.41-5.42-6.19C55.79,.13,34,0,34,0S12.21,.13,6.9,1.55 C3.97,2.33,2.27,4.81,1.48,7.74C0.06,13.05,0,24,0,24s0.06,10.95,1.48,16.26c0.78,2.93,2.49,5.41,5.42,6.19 C12.21,47.87,34,48,34,48s21.79-0.13,27.1-1.55c2.93-0.78,4.64-3.26,5.42-6.19C67.94,34.95,68,24,68,24S67.94,13.05,66.52,7.74z" fill="#f00"></path>
+                            <path d="M 45,24 27,14 27,34" fill="#fff"></path>
+                        </svg>
+                    </div>
+                </div>
             </div>`;
         });
     }
