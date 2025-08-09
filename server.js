@@ -1,16 +1,20 @@
-const express = require("express");
-const fs = require("fs");
-const path = require("path");
-const cors = require("cors");
+import express from "express";
+import fs from "fs";
+import path from "path";
+import cors from "cors";
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-const DATA_PATH = path.join(__dirname, "..", "data", "pages.json");
+const DATA_PATH = path.join(__dirname, "data", "pages.json");
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "..")));
+app.use(express.static(__dirname));
 
 function readPages() {
   if (!fs.existsSync(DATA_PATH)) return {};
@@ -19,6 +23,10 @@ function readPages() {
 }
 
 function writePages(pages) {
+  const dir = path.dirname(DATA_PATH);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
   fs.writeFileSync(DATA_PATH, JSON.stringify(pages, null, 2));
 }
 
