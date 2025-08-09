@@ -459,45 +459,46 @@ class WikiRenderer {
      */
     generateTOC(content) {
         const toc = [];
+        const lines = content.split('\n');
         
         // Match both markdown headers (# text) and wiki headers (= text =)
-        const markdownHeaderRegex = /^(#{1,6})\s+(.+)$/gm;
-        const wikiHeaderRegex = /^(={1,5})\s*(.+?)\s*\1\s*$/gm;
+        const markdownHeaderRegex = /^(#{1,6})\s+(.+)$/;
+        const wikiHeaderRegex = /^(={1,5})\s*(.+?)\s*\1\s*$/;
         
-        let match;
-        
-        // Find markdown headers
-        while ((match = markdownHeaderRegex.exec(content)) !== null) {
-            const level = match[1].length;
-            const text = match[2].trim();
-            const id = this.generateId(text);
+        // Process each line to find headers in order
+        lines.forEach((line, index) => {
+            let match;
             
-            toc.push({
-                level,
-                text,
-                id
-            });
-        }
-        
-        // Find wiki headers
-        while ((match = wikiHeaderRegex.exec(content)) !== null) {
-            const level = match[1].length;
-            const text = match[2].trim();
-            const id = this.generateId(text);
-            
-            toc.push({
-                level,
-                text,
-                id
-            });
-        }
-        
-        // Sort by position in content
-        return toc.sort((a, b) => {
-            const aIndex = content.indexOf(a.text);
-            const bIndex = content.indexOf(b.text);
-            return aIndex - bIndex;
+            // Check for markdown headers
+            if ((match = line.match(markdownHeaderRegex)) !== null) {
+                const level = match[1].length;
+                const text = match[2].trim();
+                const id = this.generateId(text);
+                
+                toc.push({
+                    level,
+                    text,
+                    id,
+                    position: index
+                });
+            }
+            // Check for wiki headers
+            else if ((match = line.match(wikiHeaderRegex)) !== null) {
+                const level = match[1].length;
+                const text = match[2].trim();
+                const id = this.generateId(text);
+                
+                toc.push({
+                    level,
+                    text,
+                    id,
+                    position: index
+                });
+            }
         });
+        
+        // Already in order, no need to sort
+        return toc;
     }
 }
 
