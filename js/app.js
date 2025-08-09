@@ -2063,25 +2063,80 @@ class WikiApp {
     }
 
     /**
-     * Scroll to footnote
-     * @param {string} footnoteId - ID of the footnote to scroll to
+     * Show footnote popup (Namuwiki style)
+     * @param {string} footnoteId - ID of the footnote to show
      */
     scrollToFootnote(footnoteId) {
         const footnote = document.getElementById(footnoteId);
         if (footnote) {
-            // Remove highlight from all footnotes
-            document.querySelectorAll('.footnote.highlighted').forEach(fn => {
-                fn.classList.remove('highlighted');
-            });
-            
-            // Highlight and scroll to the footnote
-            footnote.classList.add('highlighted');
+            const content = footnote.querySelector('.footnote-content');
+            if (content) {
+                this.showFootnotePopup(content.textContent, footnoteId);
+            }
+        }
+    }
+
+    /**
+     * Show footnote popup
+     * @param {string} content - Footnote content
+     * @param {string} footnoteId - ID of the footnote
+     */
+    showFootnotePopup(content, footnoteId) {
+        // Remove existing popup
+        const existingPopup = document.querySelector('.footnote-popup');
+        if (existingPopup) {
+            existingPopup.remove();
+        }
+
+        // Create popup
+        const popup = document.createElement('div');
+        popup.className = 'footnote-popup';
+        popup.innerHTML = `
+            <div class="footnote-popup-content">
+                <div class="footnote-popup-header">
+                    <span class="footnote-popup-title">각주</span>
+                    <button class="footnote-popup-close" onclick="this.closest('.footnote-popup').remove()">×</button>
+                </div>
+                <div class="footnote-popup-body">
+                    ${this.escapeHtml(content)}
+                </div>
+                <div class="footnote-popup-footer">
+                    <button class="footnote-popup-goto" onclick="app.scrollToFootnoteSection('${footnoteId}'); this.closest('.footnote-popup').remove();">각주로 이동</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(popup);
+
+        // Close on outside click
+        popup.addEventListener('click', (e) => {
+            if (e.target === popup) {
+                popup.remove();
+            }
+        });
+
+        // Auto-close after 8 seconds
+        setTimeout(() => {
+            if (popup.parentNode) {
+                popup.remove();
+            }
+        }, 8000);
+    }
+
+    /**
+     * Scroll to footnote section
+     * @param {string} footnoteId - ID of the footnote
+     */
+    scrollToFootnoteSection(footnoteId) {
+        const footnote = document.getElementById(footnoteId);
+        if (footnote) {
             footnote.scrollIntoView({ 
                 behavior: 'smooth', 
                 block: 'center' 
             });
             
-            // Remove highlight after 3 seconds
+            // Highlight the footnote
+            footnote.classList.add('highlighted');
             setTimeout(() => {
                 footnote.classList.remove('highlighted');
             }, 3000);
