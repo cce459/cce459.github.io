@@ -12,6 +12,7 @@ User reported footnote link navigation issue where clicking footnote numbers red
 User requested site update history feature in settings menu to view replit.md contents in real-time - added API endpoint and modal interface.
 User requested Namuwiki-style link syntax [[target|display]] where display text can be different from target page - implemented with special styling and backlink detection.
 User requested YouTube embed syntax [[htp://yt.VIDEO_ID]] to display YouTube videos directly in pages with responsive iframe player.
+User requested automatic [[분류:미분류]] category addition to all uploaded image file pages for better organization.
 
 # System Architecture
 
