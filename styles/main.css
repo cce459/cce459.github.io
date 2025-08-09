@@ -1223,6 +1223,85 @@ del {
     border-radius: 0;
 }
 
+/* Footnotes styling */
+.footnote-ref {
+    font-size: 0.75rem;
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+    padding: 0 2px;
+    transition: color 0.2s;
+}
+
+.footnote-ref:hover {
+    color: var(--primary-hover);
+    text-decoration: underline;
+}
+
+.footnotes-section {
+    margin-top: 3rem;
+    border-top: 2px solid var(--border-color);
+    padding-top: 2rem;
+}
+
+.footnotes-section h4 {
+    color: var(--text-color);
+    font-size: 1.1rem;
+    margin: 0 0 1rem 0;
+    font-weight: 600;
+}
+
+.footnotes-list {
+    padding-left: 2rem;
+    margin: 0;
+    list-style: decimal;
+}
+
+.footnotes-list li {
+    margin: 0.75rem 0;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-color-subtle);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.footnotes-list li:last-child {
+    border-bottom: none;
+}
+
+.footnote-content {
+    color: var(--text-color);
+}
+
+.footnote-backref {
+    margin-left: 0.5rem;
+    color: var(--primary-color);
+    text-decoration: none;
+    font-size: 0.8rem;
+    padding: 2px 4px;
+    border-radius: 3px;
+    background: var(--surface-color);
+    transition: all 0.2s;
+}
+
+.footnote-backref:hover {
+    background: var(--primary-color);
+    color: white;
+    text-decoration: none;
+}
+
+.footnote {
+    scroll-margin-top: 100px;
+    transition: background-color 0.3s;
+}
+
+.footnote.highlighted {
+    background-color: var(--accent-bg);
+    border-radius: 4px;
+    padding: 0.75rem;
+    margin: 0.5rem -0.5rem;
+}
+
 /* Enhanced blockquotes */
 .page-content blockquote,
 .preview-content blockquote {

@@ -22,6 +22,7 @@ class WikiRenderer {
         html = this.renderCategories(html);
         html = this.renderTags(html);
         html = this.renderTableOfContents(html);
+        html = this.renderFootnotes(html);
         html = this.renderWikiBold(html);
         html = this.renderStrikethrough(html);
         
@@ -419,6 +420,52 @@ class WikiRenderer {
      */
     renderStrikethrough(content) {
         return content.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+    }
+
+    /**
+     * Render footnotes (text[* footnote content])
+     * @param {string} content - Content to process
+     * @returns {string} Processed content with footnotes
+     */
+    renderFootnotes(content) {
+        let footnoteCounter = 1;
+        const footnotes = [];
+        
+        // Replace footnote references with numbered links
+        const processedContent = content.replace(/([^\[\s]+)\[\*\s*([^\]]+)\]/g, (match, text, footnoteContent) => {
+            const footnoteId = `footnote-${footnoteCounter}`;
+            const backrefId = `backref-${footnoteCounter}`;
+            
+            footnotes.push({
+                id: footnoteId,
+                backrefId: backrefId,
+                number: footnoteCounter,
+                content: footnoteContent.trim()
+            });
+            
+            const result = `${text}<sup><a href="#${footnoteId}" id="${backrefId}" class="footnote-ref" onclick="toggleFootnote('${footnoteId}')">${footnoteCounter}</a></sup>`;
+            footnoteCounter++;
+            
+            return result;
+        });
+        
+        // Add footnotes section at the end if there are any footnotes
+        if (footnotes.length > 0) {
+            let footnotesHtml = '<div class="footnotes-section"><hr><h4>각주</h4><ol class="footnotes-list">';
+            
+            footnotes.forEach(footnote => {
+                footnotesHtml += `<li id="${footnote.id}" class="footnote">
+                    <span class="footnote-content">${footnote.content}</span>
+                    <a href="#${footnote.backrefId}" class="footnote-backref" onclick="scrollToBackref('${footnote.backrefId}')" title="본문으로 돌아가기">↑</a>
+                </li>`;
+            });
+            
+            footnotesHtml += '</ol></div>';
+            
+            return processedContent + footnotesHtml;
+        }
+        
+        return processedContent;
     }
     
     /**

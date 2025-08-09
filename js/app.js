@@ -1886,3 +1886,52 @@ window.app = null;
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new WikiApp();
 });
+
+// Global footnote utility functions
+function toggleFootnote(footnoteId) {
+    const footnote = document.getElementById(footnoteId);
+    if (footnote) {
+        // Remove highlight from all footnotes
+        document.querySelectorAll('.footnote.highlighted').forEach(fn => {
+            fn.classList.remove('highlighted');
+        });
+        
+        // Highlight and scroll to the footnote
+        footnote.classList.add('highlighted');
+        footnote.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+        });
+        
+        // Remove highlight after 3 seconds
+        setTimeout(() => {
+            footnote.classList.remove('highlighted');
+        }, 3000);
+    }
+}
+
+function scrollToBackref(backrefId) {
+    const backref = document.getElementById(backrefId);
+    if (backref) {
+        backref.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+        });
+        
+        // Add a brief highlight effect to the backref
+        const footnoteRef = backref.querySelector('.footnote-ref');
+        if (footnoteRef) {
+            footnoteRef.style.background = '#fbbf24';
+            footnoteRef.style.color = 'white';
+            footnoteRef.style.borderRadius = '3px';
+            footnoteRef.style.padding = '2px 4px';
+            
+            setTimeout(() => {
+                footnoteRef.style.background = '';
+                footnoteRef.style.color = '';
+                footnoteRef.style.borderRadius = '';
+                footnoteRef.style.padding = '';
+            }, 2000);
+        }
+    }
+}
