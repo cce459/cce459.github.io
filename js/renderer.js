@@ -5,6 +5,8 @@ class WikiRenderer {
     constructor() {
         this.linkPattern = /\[([^\]]+)\]\(([^)]+)\)/g;
         this.internalLinkPattern = /\[([^\]]+)\]\(([^):/]+)\)(?!\w)/g;
+        // Namuwiki-style link pattern [[target|display]] or [[target]]
+        this.namuwikiLinkPattern = /\[\[([^|\]]+)(?:\|([^\]]+))?\]\]/g;
     }
 
     /**
@@ -35,6 +37,7 @@ class WikiRenderer {
         html = this.renderBold(html);
         html = this.renderItalic(html);
         html = this.renderBlockquotes(html);
+        html = this.renderNamewikiLinks(html);
         html = this.renderLinks(html);
         html = this.renderLists(html);
         html = this.renderParagraphs(html);
@@ -100,6 +103,22 @@ class WikiRenderer {
      */
     renderItalic(content) {
         return content.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    }
+
+    /**
+     * Render Namuwiki-style links [[target|display]] or [[target]]
+     * @param {string} content - Content to process
+     * @returns {string} Processed content
+     */
+    renderNamewikiLinks(content) {
+        return content.replace(this.namuwikiLinkPattern, (match, target, display) => {
+            // Use display text if provided, otherwise use target as display
+            const displayText = display || target;
+            
+            // Generate punycode URL for internal links
+            const encodedUrl = window.app ? window.app.pageNameToPunycode(target) : encodeURIComponent(target);
+            return `<a href="/${encodedUrl}" class="internal-link namuwiki-link" data-page="${target}">${displayText}</a>`;
+        });
     }
 
     /**
@@ -272,15 +291,21 @@ class WikiRenderer {
         const links = [];
         let match;
         
-        // Reset the regex lastIndex
+        // Check for regular markdown-style links [text](url)
         this.internalLinkPattern.lastIndex = 0;
-        
         while ((match = this.internalLinkPattern.exec(content)) !== null) {
             const url = match[2];
             // Only internal links (no protocol)
             if (!url.includes('://') && !url.startsWith('#')) {
                 links.push(url);
             }
+        }
+        
+        // Check for Namuwiki-style links [[target|display]] or [[target]]
+        this.namuwikiLinkPattern.lastIndex = 0;
+        while ((match = this.namuwikiLinkPattern.exec(content)) !== null) {
+            const target = match[1];
+            links.push(target);
         }
         
         return [...new Set(links)]; // Remove duplicates
