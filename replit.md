@@ -8,6 +8,7 @@ Preferred communication style: Simple, everyday language.
 Main page renamed to '대문' (Korean for "Main Page") at user request.
 User requested new features: page templates, favorites system, enhanced search with previews and highlighting, commenting system for pages, footnote functionality, and punycode-based URLs.
 User requested automatic file page creation for uploaded images.
+User reported footnote link navigation issue where clicking footnote numbers redirected to main page instead of scrolling to footnote - fixed by preventing default href behavior.
 
 # System Architecture
 
@@ -31,7 +32,7 @@ User requested automatic file page creation for uploaded images.
 - **Tag System**: Hashtag-based tagging with #tagname syntax for content organization (supports spaces in tag names)
 - **Backlink Detection**: Automatic discovery and display of pages linking to current page
 - **Comments System**: Page-level commenting with author attribution, editing, and deletion capabilities
-- **Footnotes System**: Namuwiki-style footnotes using text[* footnote content] syntax with interactive navigation
+- **Footnotes System**: Namuwiki-style footnotes using text[* footnote content] syntax with interactive navigation and proper link handling
 - **File Management**: Automatic file page creation for uploaded images with metadata and usage information
 
 ## Search and Navigation
