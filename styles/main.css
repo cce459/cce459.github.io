@@ -896,65 +896,413 @@ body {
     100% { transform: rotate(360deg); }
 }
 
-/* Responsive Design */
+/* Mobile First Responsive Design - 삼성 A16 최적화 */
+
+/* 삼성 A16 화면 크기: 412x915px (대략 360-412px 너비) */
 @media (max-width: 768px) {
+    /* 헤더 모바일 최적화 */
     .header-content {
-        padding: 1rem;
-        flex-wrap: wrap;
-        gap: 1rem;
+        padding: 0.75rem 1rem;
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: stretch;
     }
     
+    .logo {
+        justify-content: center;
+        margin-bottom: 0.5rem;
+    }
+    
+    .logo-icon {
+        max-height: 45px;
+    }
+    
+    .logo h1 {
+        font-size: 1.25rem;
+    }
+    
+    /* 검색 영역 */
     .search-container {
-        order: 3;
-        flex-basis: 100%;
+        order: 2;
         max-width: none;
+        width: 100%;
     }
     
+    .search-input {
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        border-radius: 8px;
+    }
+    
+    /* 헤더 액션 버튼들 */
+    .header-actions {
+        order: 3;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .btn {
+        flex: 1;
+        min-width: 80px;
+        justify-content: center;
+        padding: 0.6rem 0.8rem;
+        font-size: 0.8rem;
+    }
+    
+    /* 메인 콘텐츠 레이아웃 */
     .main-content {
         flex-direction: column;
+        min-height: calc(100vh - 140px);
     }
     
+    /* 사이드바 모바일 적응 */
     .sidebar {
         width: 100%;
         height: auto;
         position: static;
         border-right: none;
         border-bottom: 1px solid var(--border-color);
+        max-height: 200px;
+        overflow-y: auto;
+        padding: 1rem 0;
     }
     
+    .nav-section {
+        margin-bottom: 1rem;
+    }
+    
+    .nav-section h3 {
+        padding: 0 1rem;
+        font-size: 0.8rem;
+    }
+    
+    .page-link,
+    .recent-link {
+        padding: 0.4rem 1rem;
+        font-size: 0.85rem;
+    }
+    
+    /* 콘텐츠 영역 */
     .content-area {
         max-width: 100%;
         padding: 1rem;
+        overflow-x: hidden;
     }
     
+    /* 페이지 제목 */
+    .page-title {
+        font-size: 1.8rem;
+        line-height: 1.3;
+        margin-bottom: 1rem;
+    }
+    
+    /* 편집기 레이아웃 */
     .editor-container {
         grid-template-columns: 1fr;
+        gap: 1rem;
         height: auto;
     }
     
+    .edit-header {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: stretch;
+    }
+    
+    .page-title-input {
+        font-size: 1.25rem;
+        padding: 0.75rem;
+    }
+    
+    .edit-actions {
+        justify-content: center;
+    }
+    
+    .page-editor {
+        min-height: 300px;
+        font-size: 0.9rem;
+    }
+    
+    /* 모달 최적화 */
     .modal-content {
-        margin: 1rem;
+        margin: 0.5rem;
         min-width: auto;
-        width: calc(100% - 2rem);
+        width: calc(100% - 1rem);
+        max-width: none;
+        padding: 1.5rem;
+        max-height: 90vh;
+    }
+    
+    .modal-content.modal-large {
+        min-width: auto;
+        width: calc(100% - 1rem);
+    }
+    
+    /* 설정 메뉴 */
+    .settings-menu {
+        width: calc(100vw - 2rem);
+        right: auto;
+        left: 50%;
+        transform: translateX(-50%);
+        max-height: 70vh;
+    }
+    
+    /* 이미지 그리드 */
+    .image-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 0.75rem;
+    }
+    
+    .image-preview {
+        height: 100px;
     }
 }
 
+/* 삼성 A16 및 소형 모바일 디바이스 (360-412px) */
 @media (max-width: 480px) {
-    .header-actions {
-        flex-wrap: wrap;
+    /* 헤더 최적화 */
+    .header-content {
+        padding: 0.5rem 0.75rem;
+        gap: 0.5rem;
+    }
+    
+    .logo {
+        margin-bottom: 0.25rem;
+    }
+    
+    .logo-icon {
+        max-height: 40px;
+    }
+    
+    .logo h1 {
+        font-size: 1.1rem;
+    }
+    
+    /* 버튼들 더 작게 */
+    .btn {
+        padding: 0.5rem 0.6rem;
+        font-size: 0.75rem;
+        min-width: 70px;
+    }
+    
+    .btn i {
+        width: 14px;
+        height: 14px;
+    }
+    
+    /* 페이지 제목 더 작게 */
+    .page-title {
+        font-size: 1.5rem;
+    }
+    
+    /* 콘텐츠 패딩 줄이기 */
+    .content-area {
+        padding: 0.75rem;
+    }
+    
+    .page-header {
+        padding-bottom: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    /* 편집기 최적화 */
+    .editor-container {
+        gap: 0.75rem;
+    }
+    
+    .page-editor {
+        min-height: 250px;
+        padding: 0.75rem;
+        font-size: 0.85rem;
+    }
+    
+    /* 모달 더 작게 */
+    .modal-content {
+        margin: 0.25rem;
+        width: calc(100% - 0.5rem);
+        padding: 1rem;
+    }
+    
+    /* 검색 결과 */
+    .search-result {
+        padding: 0.6rem 0.75rem;
+    }
+    
+    .search-result-title {
+        font-size: 0.9rem;
+    }
+    
+    .search-result-snippet {
+        font-size: 0.8rem;
+    }
+    
+    /* 이미지 그리드 작은 화면용 */
+    .image-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 0.5rem;
+    }
+    
+    .image-preview {
+        height: 80px;
+    }
+    
+    .image-info {
+        padding: 0.5rem;
+    }
+    
+    .image-name {
+        font-size: 0.8rem;
+    }
+    
+    .image-size {
+        font-size: 0.7rem;
+    }
+    
+    /* 사이드바 축소 */
+    .sidebar {
+        max-height: 150px;
+        padding: 0.75rem 0;
+    }
+    
+    .nav-section {
+        margin-bottom: 0.75rem;
+    }
+    
+    .page-link,
+    .recent-link {
+        padding: 0.3rem 1rem;
+        font-size: 0.8rem;
+    }
+}
+
+/* 매우 작은 화면 (320px 이하) */
+@media (max-width: 360px) {
+    .header-content {
+        padding: 0.5rem;
+    }
+    
+    .logo h1 {
+        font-size: 1rem;
     }
     
     .btn {
-        font-size: 0.75rem;
-        padding: 0.4rem 0.8rem;
+        padding: 0.4rem 0.5rem;
+        font-size: 0.7rem;
+        min-width: 60px;
     }
     
     .page-title {
-        font-size: 1.75rem;
+        font-size: 1.3rem;
     }
     
-    .editor-container {
-        gap: 1rem;
+    .content-area {
+        padding: 0.5rem;
+    }
+    
+    .modal-content {
+        padding: 0.75rem;
+    }
+    
+    .image-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    }
+    
+    .image-preview {
+        height: 70px;
+    }
+}
+
+/* 터치 최적화 - 삼성 A16용 */
+@media (pointer: coarse) {
+    /* 터치 타겟 크기 최소 44px 보장 */
+    .btn,
+    .page-link,
+    .recent-link,
+    .search-result,
+    .setting-button {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .footnote-ref {
+        padding: 8px;
+        margin: -8px;
+        min-width: 44px;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* 터치 스크롤 개선 */
+    .sidebar,
+    .content-area,
+    .search-results,
+    .modal-content {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+    
+    /* 터치 피드백 개선 */
+    .btn:active,
+    .page-link:active,
+    .recent-link:active,
+    .search-result:active {
+        transform: scale(0.95);
+        transition: transform 0.1s;
+    }
+}
+
+/* PWA 지원 및 노치 대응 */
+@supports (padding: max(0px)) {
+    .header {
+        padding-left: max(1rem, env(safe-area-inset-left));
+        padding-right: max(1rem, env(safe-area-inset-right));
+    }
+    
+    .content-area {
+        padding-left: max(1rem, env(safe-area-inset-left));
+        padding-right: max(1rem, env(safe-area-inset-right));
+        padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    }
+}
+
+/* 한글 폰트 최적화 */
+@media (max-width: 768px) {
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard Variable", Pretendard, Roboto, "Noto Sans KR", "Segoe UI", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+        word-break: keep-all;
+        word-wrap: break-word;
+    }
+    
+    .page-content,
+    .preview-content {
+        line-height: 1.8;
+        font-size: 0.95rem;
+    }
+    
+    /* 한글 텍스트 가독성 개선 */
+    .page-content p,
+    .preview-content p {
+        margin-bottom: 1.2rem;
+        text-align: justify;
+        text-justify: inter-word;
+    }
+}
+
+/* 다크모드 모바일 최적화 */
+@media (max-width: 768px) and (prefers-color-scheme: dark) {
+    .page-content,
+    .preview-content {
+        color: #e8e8e8;
+    }
+    
+    .page-content code,
+    .preview-content code {
+        background: #2a2a2a;
+        color: #ff6b6b;
     }
 }
 
