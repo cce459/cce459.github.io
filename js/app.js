@@ -1290,6 +1290,9 @@ class WikiApp {
             this.hideUploadProgress();
             
             if (result.success) {
+                // Create file document for the uploaded image
+                await this.createImageFilePage(finalName, file, dataUrl);
+                
                 this.showNotification(`이미지 "${finalName}"이 업로드되었습니다. 위키에서 ![${finalName}]로 사용할 수 있습니다.`, 'success');
             } else {
                 this.showNotification(result.error, 'error');
@@ -1319,6 +1322,98 @@ class WikiApp {
         });
     }
     
+    /**
+     * Create a file document page for uploaded image
+     * @param {string} imageName - Name of the uploaded image
+     * @param {File} originalFile - Original file object
+     * @param {string} dataUrl - Base64 data URL of the image
+     */
+    async createImageFilePage(imageName, originalFile, dataUrl) {
+        const pageTitle = `파일:${imageName}`;
+        
+        // Check if page already exists
+        if (this.storage.getPage(pageTitle)) {
+            return; // Don't overwrite existing file page
+        }
+        
+        // Get image dimensions
+        const dimensions = await this.getImageDimensions(dataUrl);
+        
+        // Format file size
+        const formatSize = (bytes) => {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        };
+        
+        // Create file page content
+        const filePageContent = `= ${imageName} =
+
+이 페이지는 업로드된 이미지 파일에 대한 정보를 담고 있습니다.
+
+== 파일 정보 ==
+* **파일명:** ${imageName}
+* **원본 파일명:** ${originalFile.name}
+* **파일 크기:** ${formatSize(originalFile.size)}
+* **이미지 크기:** ${dimensions.width} × ${dimensions.height} 픽셀
+* **파일 형식:** ${originalFile.type}
+* **업로드 날짜:** ${new Date().toLocaleString('ko-KR')}
+
+== 이미지 미리보기 ==
+![${imageName}]
+
+== 사용법 ==
+이 이미지를 다른 문서에서 사용하려면 다음 문법을 사용하세요:
+
+* \`![${imageName}]\` - 기본 이미지
+* \`![${imageName}|캡션 텍스트]\` - 캡션과 함께 표시
+
+== 이 파일을 사용하는 페이지 ==
+이 이미지가 사용된 페이지들이 여기에 표시됩니다.
+
+== 분류 ==
+[[분류:업로드된 파일]]
+[[분류:이미지]]
+
+#파일 #이미지 #업로드`;
+
+        // Save the file page
+        const page = {
+            title: pageTitle,
+            content: filePageContent,
+            created: Date.now(),
+            modified: Date.now()
+        };
+        
+        this.storage.savePage(page);
+        
+        // Update navigation to reflect new page
+        this.updateNavigation();
+    }
+    
+    /**
+     * Get image dimensions from data URL
+     * @param {string} dataUrl - Base64 data URL
+     * @returns {Promise<{width: number, height: number}>} Image dimensions
+     */
+    getImageDimensions(dataUrl) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                resolve({
+                    width: img.width,
+                    height: img.height
+                });
+            };
+            img.onerror = () => {
+                resolve({ width: 0, height: 0 });
+            };
+            img.src = dataUrl;
+        });
+    }
+
     /**
      * Show upload progress
      */
