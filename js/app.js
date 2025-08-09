@@ -459,8 +459,8 @@ class WikiApp {
 
             this.currentPage = pageName;
             
-            // Update view
-            this.elements.pageTitle.textContent = page.title;
+            // Update view - ensure title is properly displayed as string
+            this.elements.pageTitle.textContent = typeof page.title === 'string' ? page.title : String(page.title);
             
             // Check if this is a category page and render accordingly
             if (this.storage.isCategoryPage(page.title)) {
@@ -1464,15 +1464,8 @@ class WikiApp {
 
 #파일 #이미지 #업로드`;
 
-        // Save the file page
-        const page = {
-            title: pageTitle,
-            content: filePageContent,
-            created: Date.now(),
-            modified: Date.now()
-        };
-        
-        this.storage.savePage(page);
+        // Save the file page - use savePage method directly
+        this.storage.savePage(pageTitle, filePageContent);
         
         // Update navigation to reflect new page
         this.updateNavigation();

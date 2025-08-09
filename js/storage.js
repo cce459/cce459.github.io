@@ -155,8 +155,8 @@ class WikiStorage {
             // Create or update page
             const existingPage = pages[title];
             pages[title] = {
-                title,
-                content,
+                title: String(title), // Ensure title is stored as string
+                content: String(content), // Ensure content is stored as string
                 tags,
                 created: existingPage ? existingPage.created : now,
                 modified: now,
