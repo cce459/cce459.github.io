@@ -1015,10 +1015,21 @@ class WikiApp {
             this.importData(e.target.files[0]);
         });
         
-        // Wiki stats
-        this.elements.wikiStatsBtn.addEventListener('click', () => {
-            this.showWikiStats();
-        });
+        // Wiki stats - 모바일 터치 이벤트 개선
+        if (this.elements.wikiStatsBtn) {
+            this.elements.wikiStatsBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.showWikiStats();
+            });
+            
+            // 터치 디바이스용 추가 이벤트
+            this.elements.wikiStatsBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.showWikiStats();
+            });
+        }
 
         // Update history
         this.elements.updateHistoryBtn.addEventListener('click', () => {
@@ -1232,60 +1243,76 @@ class WikiApp {
      * Show wiki statistics
      */
     showWikiStats() {
-        const stats = this.storage.getStats();
-        const categories = this.storage.getAllCategories();
-        const images = this.storage.getAllImages();
-        const imageCount = Object.keys(images).length;
-        const imagesSize = this.storage.getImagesSize();
-        
-        const statsHtml = `
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value">${stats.pageCount}</div>
-                    <div class="stat-label">총 페이지 수</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${Math.round(stats.totalChars / 1024)}KB</div>
-                    <div class="stat-label">콘텐츠 크기</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${categories.length}</div>
-                    <div class="stat-label">카테고리 수</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${imageCount}</div>
-                    <div class="stat-label">이미지 수</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${Math.round(imagesSize / 1024)}KB</div>
-                    <div class="stat-label">이미지 크기</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${Math.round(stats.storageUsed / 1024)}KB</div>
-                    <div class="stat-label">총 사용량</div>
-                </div>
-            </div>
+        try {
+            console.log('위키 통계 표시 시작');
             
-            ${categories.length > 0 ? `
-                <h4>카테고리 목록</h4>
+            const stats = this.storage.getStats();
+            const categories = this.storage.getAllCategories();
+            const images = this.storage.getAllImages();
+            const imageCount = Object.keys(images).length;
+            const imagesSize = this.storage.getImagesSize();
+            
+            console.log('통계 데이터:', { stats, categories, imageCount, imagesSize });
+            
+            const statsHtml = `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">${stats.pageCount}</div>
+                        <div class="stat-label">총 페이지 수</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${Math.round(stats.totalChars / 1024)}KB</div>
+                        <div class="stat-label">콘텐츠 크기</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${categories.length}</div>
+                        <div class="stat-label">카테고리 수</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${imageCount}</div>
+                        <div class="stat-label">이미지 수</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${Math.round(imagesSize / 1024)}KB</div>
+                        <div class="stat-label">이미지 크기</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${Math.round(stats.storageUsed / 1024)}KB</div>
+                        <div class="stat-label">총 사용량</div>
+                    </div>
+                </div>
+                
+                ${categories.length > 0 ? `
+                    <h4>카테고리 목록</h4>
+                    <ul class="stats-list">
+                        ${categories.map(cat => {
+                            const count = this.storage.getPagesInCategory(cat).length;
+                            return `<li><span>${cat}</span><span>${count}개 페이지</span></li>`;
+                        }).join('')}
+                    </ul>
+                ` : ''}
+                
+                <h4>기타 정보</h4>
                 <ul class="stats-list">
-                    ${categories.map(cat => {
-                        const count = this.storage.getPagesInCategory(cat).length;
-                        return `<li><span>${cat}</span><span>${count}개 페이지</span></li>`;
-                    }).join('')}
+                    <li><span>마지막 수정</span><span>${stats.lastModified ? new Date(stats.lastModified).toLocaleString() : '없음'}</span></li>
+                    <li><span>평균 페이지 크기</span><span>${Math.round(stats.totalChars / stats.pageCount)}자</span></li>
                 </ul>
-            ` : ''}
+            `;
             
-            <h4>기타 정보</h4>
-            <ul class="stats-list">
-                <li><span>마지막 수정</span><span>${stats.lastModified ? new Date(stats.lastModified).toLocaleString() : '없음'}</span></li>
-                <li><span>평균 페이지 크기</span><span>${Math.round(stats.totalChars / stats.pageCount)}자</span></li>
-            </ul>
-        `;
-        
-        this.elements.statsContent.innerHTML = statsHtml;
-        this.elements.wikiStatsModal.style.display = 'flex';
-        this.closeSettingsMenu();
+            if (this.elements.statsContent) {
+                this.elements.statsContent.innerHTML = statsHtml;
+            }
+            
+            if (this.elements.wikiStatsModal) {
+                this.elements.wikiStatsModal.style.display = 'flex';
+                console.log('위키 통계 모달 표시됨');
+            }
+            
+            this.closeSettingsMenu();
+        } catch (error) {
+            console.error('위키 통계 표시 오류:', error);
+            alert('위키 통계를 표시하는 중 오류가 발생했습니다.');
+        }
     }
 
     /**
