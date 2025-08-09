@@ -79,6 +79,13 @@ class WikiApp {
             statsContent: document.getElementById('stats-content'),
             closeStats: document.getElementById('close-stats'),
             
+            // Update History modal
+            updateHistoryBtn: document.getElementById('update-history-btn'),
+            updateHistoryModal: document.getElementById('update-history-modal'),
+            updateHistoryContent: document.getElementById('update-history-content'),
+            refreshHistoryBtn: document.getElementById('refresh-history'),
+            closeHistoryModal: document.getElementById('close-history-modal'),
+            
             // Tagged pages modal
             taggedPagesModal: document.getElementById('tagged-pages-modal'),
             taggedPagesTitle: document.getElementById('tagged-pages-title'),
@@ -1012,6 +1019,11 @@ class WikiApp {
         this.elements.wikiStatsBtn.addEventListener('click', () => {
             this.showWikiStats();
         });
+
+        // Update history
+        this.elements.updateHistoryBtn.addEventListener('click', () => {
+            this.showUpdateHistory();
+        });
         
         // Image upload
         this.elements.uploadImageBtn.addEventListener('click', () => {
@@ -1040,9 +1052,19 @@ class WikiApp {
         this.elements.closeStats.addEventListener('click', () => {
             this.elements.wikiStatsModal.style.display = 'none';
         });
+
+        // Close update history modal
+        this.elements.closeHistoryModal.addEventListener('click', () => {
+            this.elements.updateHistoryModal.style.display = 'none';
+        });
+
+        // Refresh update history
+        this.elements.refreshHistoryBtn.addEventListener('click', () => {
+            this.loadUpdateHistory();
+        });
         
         // Close modals on background click
-        [this.elements.pageHistoryModal, this.elements.wikiStatsModal, this.elements.imageManagementModal].forEach(modal => {
+        [this.elements.pageHistoryModal, this.elements.wikiStatsModal, this.elements.imageManagementModal, this.elements.updateHistoryModal].forEach(modal => {
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     modal.style.display = 'none';
@@ -1264,6 +1286,48 @@ class WikiApp {
         this.elements.statsContent.innerHTML = statsHtml;
         this.elements.wikiStatsModal.style.display = 'flex';
         this.closeSettingsMenu();
+    }
+
+    /**
+     * Show update history modal
+     */
+    showUpdateHistory() {
+        this.loadUpdateHistory();
+        this.elements.updateHistoryModal.style.display = 'flex';
+        this.closeSettingsMenu();
+    }
+
+    /**
+     * Load update history from replit.md
+     */
+    async loadUpdateHistory() {
+        try {
+            this.elements.updateHistoryContent.innerHTML = '<div class="loading-text">업데이트 기록을 불러오는 중...</div>';
+            
+            const response = await fetch('/api/update-history');
+            const data = await response.json();
+            
+            if (response.ok && data.content) {
+                // Render markdown content using the wiki renderer
+                const renderedContent = this.renderer.render(data.content);
+                this.elements.updateHistoryContent.innerHTML = renderedContent;
+            } else {
+                this.elements.updateHistoryContent.innerHTML = `
+                    <div class="error-message">
+                        <p>업데이트 기록을 불러올 수 없습니다.</p>
+                        <p class="error-details">${data.error || '알 수 없는 오류가 발생했습니다.'}</p>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error loading update history:', error);
+            this.elements.updateHistoryContent.innerHTML = `
+                <div class="error-message">
+                    <p>업데이트 기록을 불러오는 중 오류가 발생했습니다.</p>
+                    <p class="error-details">서버와 연결할 수 없습니다.</p>
+                </div>
+            `;
+        }
     }
     
     

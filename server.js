@@ -51,6 +51,18 @@ app.post("/pages/:title", (req, res) => {
   res.json({ status: "saved" });
 });
 
+// API endpoint to get update history from replit.md
+app.get("/api/update-history", (req, res) => {
+  try {
+    const replitMdPath = path.join(__dirname, "replit.md");
+    const content = fs.readFileSync(replitMdPath, "utf-8");
+    res.json({ content });
+  } catch (error) {
+    console.error("Error reading replit.md:", error);
+    res.status(500).json({ error: "Could not read update history" });
+  }
+});
+
 // Handle all other routes by serving index.html (for client-side routing)
 app.get("*", (req, res) => {
   // Skip API routes

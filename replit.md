@@ -9,13 +9,14 @@ Main page renamed to '대문' (Korean for "Main Page") at user request.
 User requested new features: page templates, favorites system, enhanced search with previews and highlighting, commenting system for pages, footnote functionality, and punycode-based URLs.
 User requested automatic file page creation for uploaded images.
 User reported footnote link navigation issue where clicking footnote numbers redirected to main page instead of scrolling to footnote - implemented Namuwiki-style popup system where clicking footnote numbers shows popup with footnote content.
+User requested site update history feature in settings menu to view replit.md contents in real-time - added API endpoint and modal interface.
 
 # System Architecture
 
 ## Frontend Architecture
 - **Pure JavaScript Architecture**: Built with vanilla JavaScript using class-based modules for better organization and maintainability
 - **Component-Based Design**: Separated into logical modules (WikiApp, WikiStorage, WikiRenderer, WikiSearch) with single responsibilities
-- **Client-Side Only**: No backend required - runs entirely in the browser
+- **Hybrid Architecture**: Client-side focused with minimal Node.js server for file operations and API endpoints
 - **Responsive Web Design**: CSS-based responsive layout with mobile-first approach
 
 ## Data Storage
