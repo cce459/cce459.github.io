@@ -445,7 +445,7 @@ class WikiRenderer {
                 content: footnoteContent.trim()
             });
             
-            const result = `${text}<sup><a href="javascript:void(0)" id="${backrefId}" class="footnote-ref" onclick="event.preventDefault(); toggleFootnote('${footnoteId}'); return false;">${footnoteCounter}</a></sup>`;
+            const result = `${text}<sup><span id="${backrefId}" class="footnote-ref" data-footnote="${footnoteId}">${footnoteCounter}</span></sup>`;
             footnoteCounter++;
             
             return result;
@@ -458,7 +458,7 @@ class WikiRenderer {
             footnotes.forEach(footnote => {
                 footnotesHtml += `<li id="${footnote.id}" class="footnote">
                     <span class="footnote-content">${footnote.content}</span>
-                    <a href="javascript:void(0)" class="footnote-backref" onclick="event.preventDefault(); scrollToBackref('${footnote.backrefId}'); return false;" title="본문으로 돌아가기">↑</a>
+                    <span class="footnote-backref" data-backref="${footnote.backrefId}" title="본문으로 돌아가기">↑</span>
                 </li>`;
             });
             

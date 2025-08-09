@@ -292,6 +292,26 @@ class WikiApp {
         document.addEventListener('navigate-to-page', (e) => {
             this.navigateToPage(e.detail.pageName);
         });
+
+        // Handle footnote references
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('footnote-ref')) {
+                e.preventDefault();
+                e.stopPropagation();
+                const footnoteId = e.target.dataset.footnote;
+                this.scrollToFootnote(footnoteId);
+            }
+        });
+
+        // Handle footnote back references
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('footnote-backref')) {
+                e.preventDefault();
+                e.stopPropagation();
+                const backrefId = e.target.dataset.backref;
+                this.scrollToBackref(backrefId);
+            }
+        });
     }
 
     /**
@@ -2040,6 +2060,62 @@ class WikiApp {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    /**
+     * Scroll to footnote
+     * @param {string} footnoteId - ID of the footnote to scroll to
+     */
+    scrollToFootnote(footnoteId) {
+        const footnote = document.getElementById(footnoteId);
+        if (footnote) {
+            // Remove highlight from all footnotes
+            document.querySelectorAll('.footnote.highlighted').forEach(fn => {
+                fn.classList.remove('highlighted');
+            });
+            
+            // Highlight and scroll to the footnote
+            footnote.classList.add('highlighted');
+            footnote.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
+            
+            // Remove highlight after 3 seconds
+            setTimeout(() => {
+                footnote.classList.remove('highlighted');
+            }, 3000);
+        }
+    }
+
+    /**
+     * Scroll to back reference
+     * @param {string} backrefId - ID of the back reference to scroll to
+     */
+    scrollToBackref(backrefId) {
+        const backref = document.getElementById(backrefId);
+        if (backref) {
+            backref.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
+            
+            // Add a brief highlight effect to the backref
+            const footnoteRef = backref;
+            if (footnoteRef) {
+                footnoteRef.style.background = '#fbbf24';
+                footnoteRef.style.color = 'white';
+                footnoteRef.style.borderRadius = '3px';
+                footnoteRef.style.padding = '2px 4px';
+                
+                setTimeout(() => {
+                    footnoteRef.style.background = '';
+                    footnoteRef.style.color = '';
+                    footnoteRef.style.borderRadius = '';
+                    footnoteRef.style.padding = '';
+                }, 2000);
+            }
+        }
     }
 }
 
