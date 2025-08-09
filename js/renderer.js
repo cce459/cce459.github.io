@@ -1,5 +1,5 @@
 /**
- * Markdown-like renderer for wiki content
+ * Wiki renderer for pure wiki content (no markdown support)
  */
 class WikiRenderer {
     constructor() {
@@ -30,19 +30,10 @@ class WikiRenderer {
         html = this.renderWikiBold(html);
         html = this.renderStrikethrough(html);
         
-        // Then process standard markdown
-        html = this.renderHeaders(html);
-        html = this.renderHorizontalRules(html);
-        html = this.renderCodeBlocks(html);
-        html = this.renderInlineCode(html);
+        // Process wiki-specific rendering only (no markdown)
         html = this.renderImages(html);
-        html = this.renderBold(html);
-        html = this.renderItalic(html);
-        html = this.renderBlockquotes(html);
         html = this.renderYouTubeEmbeds(html);
         html = this.renderNamewikiLinks(html);
-        html = this.renderLinks(html);
-        html = this.renderLists(html);
         html = this.renderParagraphs(html);
         
         return html;
