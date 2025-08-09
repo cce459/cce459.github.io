@@ -115,18 +115,24 @@ class WikiRenderer {
      */
     renderYouTubeEmbeds(content) {
         return content.replace(this.youtubeEmbedPattern, (match, videoId) => {
-            return `
-                <div class="youtube-embed-container">
-                    <iframe 
-                        class="youtube-embed"
-                        src="https://www.youtube.com/embed/${videoId}" 
-                        title="YouTube video player" 
-                        frameborder="0" 
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                        allowfullscreen>
-                    </iframe>
-                </div>
-            `;
+            // Sanitize video ID to prevent XSS
+            const cleanVideoId = videoId.replace(/[^a-zA-Z0-9_-]/g, '');
+            if (!cleanVideoId) return match;
+            
+            return `<div class="youtube-embed-container">
+                <div class="youtube-loading">동영상을 불러오는 중...</div>
+                <iframe 
+                    class="youtube-embed" 
+                    src="https://www.youtube-nocookie.com/embed/${cleanVideoId}?rel=0&modestbranding=1" 
+                    title="YouTube video: ${cleanVideoId}" 
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowfullscreen
+                    loading="lazy"
+                    onload="this.previousElementSibling.style.display='none';"
+                    onerror="this.previousElementSibling.textContent='동영상을 불러올 수 없습니다.';">
+                </iframe>
+            </div>`;
         });
     }
 
