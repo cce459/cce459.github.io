@@ -66,7 +66,7 @@ app.get("/api/update-history", (req, res) => {
 // Handle all other routes by serving index.html (for client-side routing)
 app.get("*", (req, res) => {
   // Skip API routes
-  if (req.path.startsWith("/pages")) {
+  if (req.path.startsWith("/pages") || req.path.startsWith("/api")) {
     res.status(404).json({ error: "Not found" });
     return;
   }
