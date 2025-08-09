@@ -1554,6 +1554,35 @@ del {
     text-decoration: none;
 }
 
+/* YouTube embed styles */
+.youtube-embed-container {
+    position: relative;
+    width: 100%;
+    height: 0;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+    margin: 1rem 0;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.youtube-embed {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: var(--border-radius);
+}
+
+/* Responsive YouTube embeds */
+@media (max-width: 768px) {
+    .youtube-embed-container {
+        margin: 0.75rem 0;
+        border-radius: 8px;
+    }
+}
+
 /* Category page styling */
 .category-page-list {
     margin-top: 2rem;

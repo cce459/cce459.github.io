@@ -7,6 +7,8 @@ class WikiRenderer {
         this.internalLinkPattern = /\[([^\]]+)\]\(([^):/]+)\)(?!\w)/g;
         // Namuwiki-style link pattern [[target|display]] or [[target]]
         this.namuwikiLinkPattern = /\[\[([^|\]]+)(?:\|([^\]]+))?\]\]/g;
+        // YouTube embed pattern [[htp://yt.VIDEO_ID]]
+        this.youtubeEmbedPattern = /\[\[htp:\/\/yt\.([a-zA-Z0-9_-]+)\]\]/g;
     }
 
     /**
@@ -37,6 +39,7 @@ class WikiRenderer {
         html = this.renderBold(html);
         html = this.renderItalic(html);
         html = this.renderBlockquotes(html);
+        html = this.renderYouTubeEmbeds(html);
         html = this.renderNamewikiLinks(html);
         html = this.renderLinks(html);
         html = this.renderLists(html);
@@ -106,12 +109,39 @@ class WikiRenderer {
     }
 
     /**
+     * Render YouTube embeds [[htp://yt.VIDEO_ID]]
+     * @param {string} content - Content to process
+     * @returns {string} Processed content
+     */
+    renderYouTubeEmbeds(content) {
+        return content.replace(this.youtubeEmbedPattern, (match, videoId) => {
+            return `
+                <div class="youtube-embed-container">
+                    <iframe 
+                        class="youtube-embed"
+                        src="https://www.youtube.com/embed/${videoId}" 
+                        title="YouTube video player" 
+                        frameborder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                        allowfullscreen>
+                    </iframe>
+                </div>
+            `;
+        });
+    }
+
+    /**
      * Render Namuwiki-style links [[target|display]] or [[target]]
      * @param {string} content - Content to process
      * @returns {string} Processed content
      */
     renderNamewikiLinks(content) {
         return content.replace(this.namuwikiLinkPattern, (match, target, display) => {
+            // Skip YouTube embeds (they should be processed by renderYouTubeEmbeds first)
+            if (target.startsWith('htp://yt.')) {
+                return match;
+            }
+            
             // Use display text if provided, otherwise use target as display
             const displayText = display || target;
             

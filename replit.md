@@ -11,6 +11,7 @@ User requested automatic file page creation for uploaded images.
 User reported footnote link navigation issue where clicking footnote numbers redirected to main page instead of scrolling to footnote - implemented Namuwiki-style popup system where clicking footnote numbers shows popup with footnote content.
 User requested site update history feature in settings menu to view replit.md contents in real-time - added API endpoint and modal interface.
 User requested Namuwiki-style link syntax [[target|display]] where display text can be different from target page - implemented with special styling and backlink detection.
+User requested YouTube embed syntax [[htp://yt.VIDEO_ID]] to display YouTube videos directly in pages with responsive iframe player.
 
 # System Architecture
 
