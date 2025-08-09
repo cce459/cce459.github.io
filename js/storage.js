@@ -1,38 +1,41 @@
 /**
- * Storage utility for managing wiki pages in localStorage
+ * Storage utility for managing wiki pages with real-time database backend
  */
 class WikiStorage {
     constructor() {
-        this.storageKey = 'wiki-pages';
+        this.apiBaseUrl = '/pages';
+        this.imagesApiUrl = '/api/images';
+        this.commentsApiUrl = '/pages';
+        
+        // Local cache for better performance
+        this.pageCache = new Map();
         this.settingsKey = 'wiki-settings';
         this.recentKey = 'wiki-recent';
-        this.historyKey = 'wiki-history';
-        this.imagesKey = 'wiki-images';
-        this.tagsKey = 'wiki-tags';
         this.favoritesKey = 'wiki-favorites';
         this.templatesKey = 'wiki-templates';
-        this.commentsKey = 'wiki-comments';
+        
         this.initializeStorage();
     }
 
     /**
-     * Initialize storage with default pages if empty
+     * Initialize storage - create default page if needed
      */
-    initializeStorage() {
-        const pages = this.getAllPages();
-        if (Object.keys(pages).length === 0) {
-            this.createDefaultPages();
+    async initializeStorage() {
+        try {
+            const pages = await this.getAllPageTitles();
+            if (pages.length === 0) {
+                await this.createDefaultPages();
+            }
+        } catch (error) {
+            console.error('Error initializing storage:', error);
         }
     }
 
     /**
      * Create default pages for new wikis
      */
-    createDefaultPages() {
-        const defaultPages = {
-            '대문': {
-                title: '대문',
-                content: `= 개인 위키에 오신 것을 환영합니다 =
+    async createDefaultPages() {
+        const defaultContent = `= 개인 위키에 오신 것을 환영합니다 =
 
 이곳은 당신의 개인 위키 홈페이지입니다. 위의 네비게이션을 사용하여 이 페이지를 편집하거나 새 페이지를 만들 수 있습니다.
 
@@ -67,1291 +70,676 @@ class WikiStorage {
 YouTube 동영상: [[htp://yt.VIDEO_ID]]
 이미지: ![파일명]
 
-즐겁게 작성하세요!`,
-                created: Date.now(),
-                modified: Date.now(),
-                version: 1
-            },
-            '소개': {
-                title: '소개',
-                content: `= 이 위키에 대해 =
+즐겁게 작성하세요!`;
 
-이 위키는 순수한 HTML, CSS, JavaScript로 구축된 개인 지식 관리 시스템입니다.
-
-== 기능 ==
-
-* '''로컬 저장소''': 모든 데이터가 브라우저에 로컬로 저장됩니다
-* '''위키 문법''': 나무위키 스타일 마크업으로 쉽게 서식 지정
-* '''실시간 미리보기''': 입력하면서 변경 사항을 실시간으로 확인
-* '''페이지 링크''': 페이지 간 원활한 연결
-* '''검색''': 모든 페이지에서 콘텐츠 검색
-* '''반응형 디자인''': 데스크톱과 모바일 장치에서 모두 작동
-
-== 개인정보 보호 ==
-
-모든 데이터가 기기에 저장됩니다. 외부 서버로 전송되지 않습니다.
-
-[[분류:도움말]]`,
-                created: Date.now(),
-                modified: Date.now(),
-                version: 1
-            }
-        };
-
-        localStorage.setItem(this.storageKey, JSON.stringify(defaultPages));
+        try {
+            await this.savePage('대문', defaultContent, { tags: ['도움말'] });
+            console.log('기본 페이지 생성 완료');
+        } catch (error) {
+            console.error('Error creating default pages:', error);
+        }
     }
 
     /**
-     * Get all pages from storage
-     * @returns {Object} Object containing all pages
+     * Get all page titles from server
      */
-    getAllPages() {
+    async getAllPageTitles() {
         try {
-            const data = localStorage.getItem(this.storageKey);
-            return data ? JSON.parse(data) : {};
+            const response = await fetch(this.apiBaseUrl);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return await response.json();
         } catch (error) {
-            console.error('Error loading pages from storage:', error);
+            console.error('Error fetching page titles:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get all pages (for backwards compatibility)
+     */
+    async getAllPages() {
+        try {
+            const titles = await this.getAllPageTitles();
+            const pages = {};
+            
+            for (const title of titles) {
+                const page = await this.getPage(title);
+                if (page) {
+                    pages[title] = {
+                        title: page.title,
+                        content: page.content,
+                        created: new Date(page.createdAt).getTime(),
+                        modified: new Date(page.lastModified).getTime(),
+                        version: 1,
+                        metadata: page.metadata || {}
+                    };
+                }
+            }
+            
+            return pages;
+        } catch (error) {
+            console.error('Error fetching all pages:', error);
             return {};
         }
     }
 
     /**
-     * Get a specific page by title
-     * @param {string} title - Page title
-     * @returns {Object|null} Page object or null if not found
+     * Get a specific page from server
      */
-    getPage(title) {
-        const pages = this.getAllPages();
-        return pages[title] || null;
+    async getPage(title) {
+        try {
+            // Check cache first
+            if (this.pageCache.has(title)) {
+                const cached = this.pageCache.get(title);
+                if (Date.now() - cached.timestamp < 30000) { // 30초 캐시
+                    return cached.data;
+                }
+            }
+            
+            const response = await fetch(`${this.apiBaseUrl}/${encodeURIComponent(title)}`);
+            if (response.status === 404) {
+                return null;
+            }
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const page = await response.json();
+            
+            // Cache the result
+            this.pageCache.set(title, {
+                data: page,
+                timestamp: Date.now()
+            });
+            
+            return page;
+        } catch (error) {
+            console.error('Error fetching page:', error);
+            return null;
+        }
     }
 
     /**
-     * Save or update a page
-     * @param {string} title - Page title
-     * @param {string} content - Page content
-     * @param {string} oldTitle - Previous title (for renaming)
-     * @returns {boolean} Success status
+     * Save a page to server
      */
-    savePage(title, content, oldTitle = null) {
+    async savePage(title, content, metadata = {}) {
         try {
-            const pages = this.getAllPages();
-            const now = Date.now();
-            
-            // Handle page renaming
-            // Save history of current version if page exists
-            if (pages[title]) {
-                this.savePageHistory(title, pages[title]);
+            const response = await fetch(`${this.apiBaseUrl}/${encodeURIComponent(title)}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    content,
+                    metadata
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+
+            const result = await response.json();
             
-            // Handle page renaming
-            if (oldTitle && oldTitle !== title && pages[oldTitle]) {
-                // Save history of old page before deleting
-                this.savePageHistory(oldTitle, pages[oldTitle]);
-                // Delete old page
-                delete pages[oldTitle];
-                // Remove from recent list
-                this.removeFromRecent(oldTitle);
-            }
+            // Update cache
+            this.pageCache.set(title, {
+                data: result.page,
+                timestamp: Date.now()
+            });
             
-            // Extract tags from content
-            const tags = this.extractTags(content);
-            
-            // Create or update page
-            const existingPage = pages[title];
-            pages[title] = {
-                title: String(title), // Ensure title is stored as string
-                content: String(content), // Ensure content is stored as string
-                tags,
-                created: existingPage ? existingPage.created : now,
-                modified: now,
-                version: existingPage ? existingPage.version + 1 : 1
-            };
-            
-            localStorage.setItem(this.storageKey, JSON.stringify(pages));
+            // Update recent pages
             this.addToRecent(title);
-            return true;
+            
+            return result;
         } catch (error) {
             console.error('Error saving page:', error);
-            return false;
+            throw error;
         }
     }
 
     /**
-     * Delete a page
-     * @param {string} title - Page title
-     * @returns {boolean} Success status
+     * Delete a page (implementation for future use)
      */
-    deletePage(title) {
+    async deletePage(title) {
         try {
-            const pages = this.getAllPages();
-            if (pages[title]) {
-                // Save to history before deleting
-                this.savePageHistory(title, pages[title]);
-                delete pages[title];
-                localStorage.setItem(this.storageKey, JSON.stringify(pages));
-                this.removeFromRecent(title);
-                return true;
+            const response = await fetch(`${this.apiBaseUrl}/${encodeURIComponent(title)}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-            return false;
+
+            // Remove from cache
+            this.pageCache.delete(title);
+            
+            return await response.json();
         } catch (error) {
             console.error('Error deleting page:', error);
-            return false;
+            throw error;
         }
     }
 
     /**
-     * Get page titles for navigation
-     * @returns {Array} Array of page titles
+     * Add comment to a page
      */
-    getPageTitles() {
-        const pages = this.getAllPages();
-        return Object.keys(pages).sort();
+    async addComment(pageTitle, author, content) {
+        try {
+            const response = await fetch(`${this.commentsApiUrl}/${encodeURIComponent(pageTitle)}/comments`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    author,
+                    content
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error adding comment:', error);
+            throw error;
+        }
     }
 
     /**
-     * Search pages by title and content
-     * @param {string} query - Search query
-     * @returns {Array} Array of search results
+     * Update a comment
      */
-    searchPages(query) {
-        if (!query.trim()) return [];
-        
-        const pages = this.getAllPages();
-        const results = [];
-        const queryLower = query.toLowerCase();
-        
-        for (const [title, page] of Object.entries(pages)) {
-            const titleMatch = title.toLowerCase().includes(queryLower);
-            const contentMatch = page.content.toLowerCase().includes(queryLower);
-            
-            if (titleMatch || contentMatch) {
-                // Find snippet around the match
-                let snippet = '';
-                if (contentMatch) {
-                    const contentLower = page.content.toLowerCase();
-                    const matchIndex = contentLower.indexOf(queryLower);
-                    const start = Math.max(0, matchIndex - 50);
-                    const end = Math.min(page.content.length, matchIndex + query.length + 50);
-                    snippet = page.content.substring(start, end);
-                    if (start > 0) snippet = '...' + snippet;
-                    if (end < page.content.length) snippet += '...';
-                } else {
-                    // Get first line if title match
-                    const firstLine = page.content.split('\n')[0];
-                    snippet = firstLine.length > 100 ? firstLine.substring(0, 100) + '...' : firstLine;
-                }
-                
-                results.push({
-                    title,
-                    snippet: snippet.trim(),
-                    relevance: titleMatch ? 2 : 1 // Title matches have higher relevance
-                });
+    async updateComment(commentId, content) {
+        try {
+            const response = await fetch(`/comments/${commentId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ content })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error updating comment:', error);
+            throw error;
         }
-        
-        // Sort by relevance, then alphabetically
-        return results.sort((a, b) => {
-            if (a.relevance !== b.relevance) {
-                return b.relevance - a.relevance;
+    }
+
+    /**
+     * Delete a comment
+     */
+    async deleteComment(commentId) {
+        try {
+            const response = await fetch(`/comments/${commentId}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-            return a.title.localeCompare(b.title);
-        });
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error deleting comment:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Upload image to server
+     */
+    async uploadImage(name, data, size, mimeType) {
+        try {
+            const response = await fetch(this.imagesApiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name,
+                    data,
+                    size,
+                    mimeType
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error uploading image:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get all images from server
+     */
+    async getAllImages() {
+        try {
+            const response = await fetch(this.imagesApiUrl);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching images:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Delete image from server
+     */
+    async deleteImage(name) {
+        try {
+            const response = await fetch(`${this.imagesApiUrl}/${encodeURIComponent(name)}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error deleting image:', error);
+            throw error;
+        }
+    }
+
+    // Local storage methods (for settings, recent pages, favorites, etc.)
+    
+    /**
+     * Get settings from localStorage
+     */
+    getSettings() {
+        const settings = localStorage.getItem(this.settingsKey);
+        return settings ? JSON.parse(settings) : {
+            darkMode: false,
+            autoSave: true,
+            autoSaveInterval: 30000
+        };
+    }
+
+    /**
+     * Save settings to localStorage
+     */
+    saveSettings(settings) {
+        localStorage.setItem(this.settingsKey, JSON.stringify(settings));
+    }
+
+    /**
+     * Get recent pages from localStorage
+     */
+    getRecentPages() {
+        const recent = localStorage.getItem(this.recentKey);
+        return recent ? JSON.parse(recent) : [];
     }
 
     /**
      * Add page to recent list
-     * @param {string} title - Page title
      */
     addToRecent(title) {
-        try {
-            const recent = this.getRecent();
-            const filtered = recent.filter(item => item !== title);
-            filtered.unshift(title);
-            const limited = filtered.slice(0, 10); // Keep only last 10
-            localStorage.setItem(this.recentKey, JSON.stringify(limited));
-        } catch (error) {
-            console.error('Error updating recent pages:', error);
-        }
+        let recent = this.getRecentPages();
+        recent = recent.filter(page => page !== title);
+        recent.unshift(title);
+        recent = recent.slice(0, 10); // Keep only 10 recent pages
+        localStorage.setItem(this.recentKey, JSON.stringify(recent));
     }
 
     /**
-     * Get recent pages
-     * @returns {Array} Array of recent page titles
-     */
-    getRecent() {
-        try {
-            const data = localStorage.getItem(this.recentKey);
-            return data ? JSON.parse(data) : [];
-        } catch (error) {
-            console.error('Error loading recent pages:', error);
-            return [];
-        }
-    }
-
-    /**
-     * Remove page from recent list
-     * @param {string} title - Page title
-     */
-    removeFromRecent(title) {
-        try {
-            const recent = this.getRecent();
-            const filtered = recent.filter(item => item !== title);
-            localStorage.setItem(this.recentKey, JSON.stringify(filtered));
-        } catch (error) {
-            console.error('Error removing from recent pages:', error);
-        }
-    }
-
-    /**
-     * Save page version to history
-     * @param {string} title - Page title
-     * @param {Object} pageData - Page data
-     */
-    savePageHistory(title, pageData) {
-        try {
-            const history = this.getPageHistory(title);
-            history.unshift({
-                ...pageData,
-                archivedAt: Date.now()
-            });
-            // Keep only last 20 versions
-            const limited = history.slice(0, 20);
-            
-            const allHistory = this.getAllHistory();
-            allHistory[title] = limited;
-            localStorage.setItem(this.historyKey, JSON.stringify(allHistory));
-        } catch (error) {
-            console.error('Error saving page history:', error);
-        }
-    }
-
-    /**
-     * Get history for a specific page
-     * @param {string} title - Page title
-     * @returns {Array} Array of page versions
-     */
-    getPageHistory(title) {
-        try {
-            const allHistory = this.getAllHistory();
-            return allHistory[title] || [];
-        } catch (error) {
-            console.error('Error loading page history:', error);
-            return [];
-        }
-    }
-
-    /**
-     * Get all page history
-     * @returns {Object} Object containing all page histories
-     */
-    getAllHistory() {
-        try {
-            const data = localStorage.getItem(this.historyKey);
-            return data ? JSON.parse(data) : {};
-        } catch (error) {
-            console.error('Error loading history:', error);
-            return {};
-        }
-    }
-
-    /**
-     * Get storage statistics
-     * @returns {Object} Storage statistics
-     */
-    getStats() {
-        const pages = this.getAllPages();
-        const pageCount = Object.keys(pages).length;
-        let totalChars = 0;
-        let lastModified = 0;
-        
-        for (const page of Object.values(pages)) {
-            totalChars += page.content.length;
-            if (page.modified > lastModified) {
-                lastModified = page.modified;
-            }
-        }
-        
-        return {
-            pageCount,
-            totalChars,
-            lastModified,
-            storageUsed: this.getStorageSize()
-        };
-    }
-
-    /**
-     * Get approximate storage size used
-     * @returns {number} Size in bytes (approximate)
-     */
-    getStorageSize() {
-        try {
-            let totalSize = 0;
-            for (let key in localStorage) {
-                if (key.startsWith('wiki-')) {
-                    const item = localStorage.getItem(key);
-                    totalSize += key.length + (item ? item.length : 0);
-                }
-            }
-            return totalSize;
-        } catch (error) {
-            return 0;
-        }
-    }
-
-    /**
-     * Export all data
-     * @returns {Object} All wiki data
-     */
-    exportData() {
-        return {
-            pages: this.getAllPages(),
-            recent: this.getRecent(),
-            history: this.getAllHistory(),
-            exportDate: new Date().toISOString(),
-            version: '1.0'
-        };
-    }
-
-    /**
-     * Import data (overwrites existing)
-     * @param {Object} data - Data to import
-     * @returns {boolean} Success status
-     */
-    importData(data) {
-        try {
-            if (data.pages) {
-                localStorage.setItem(this.storageKey, JSON.stringify(data.pages));
-            }
-            if (data.recent) {
-                localStorage.setItem(this.recentKey, JSON.stringify(data.recent));
-            }
-            if (data.history) {
-                localStorage.setItem(this.historyKey, JSON.stringify(data.history));
-            }
-            return true;
-        } catch (error) {
-            console.error('Error importing data:', error);
-            return false;
-        }
-    }
-
-    /**
-     * Clear all data
-     * @returns {boolean} Success status
-     */
-    clearAll() {
-        try {
-            localStorage.removeItem(this.storageKey);
-            localStorage.removeItem(this.recentKey);
-            localStorage.removeItem(this.historyKey);
-            localStorage.removeItem(this.settingsKey);
-            localStorage.removeItem(this.imagesKey);
-            localStorage.removeItem('wiki-draft'); // Clear drafts too
-            this.initializeStorage();
-            return true;
-        } catch (error) {
-            console.error('Error clearing data:', error);
-            return false;
-        }
-    }
-    
-    /**
-     * Remove a page from recent list
-     * @param {string} title - Page title to remove
-     */
-    removeFromRecent(title) {
-        try {
-            const recent = this.getRecent();
-            const filtered = recent.filter(t => t !== title);
-            localStorage.setItem(this.recentKey, JSON.stringify(filtered));
-        } catch (error) {
-            console.error('Error removing from recent:', error);
-        }
-    }
-    
-    /**
-     * Check if storage is available and working
-     * @returns {boolean} Whether storage is working
-     */
-    isStorageAvailable() {
-        try {
-            const test = 'storage-test';
-            localStorage.setItem(test, test);
-            localStorage.removeItem(test);
-            return true;
-        } catch (error) {
-            return false;
-        }
-    }
-    
-    /**
-     * Get storage quota information
-     * @returns {Object} Storage quota info
-     */
-    async getStorageQuota() {
-        if ('storage' in navigator && 'estimate' in navigator.storage) {
-            try {
-                const estimate = await navigator.storage.estimate();
-                return {
-                    quota: estimate.quota,
-                    usage: estimate.usage,
-                    available: estimate.quota - estimate.usage,
-                    percentage: Math.round((estimate.usage / estimate.quota) * 100)
-                };
-            } catch (error) {
-                console.warn('Storage quota estimation failed:', error);
-            }
-        }
-        return null;
-    }
-    
-    /**
-     * Get all categories used in pages
-     * @returns {Array} Array of category names
-     */
-    getAllCategories() {
-        const pages = this.getAllPages();
-        const categories = new Set();
-        const categoryRegex = /\[\[분류:([^\]]+)\]\]/g;
-        
-        for (const page of Object.values(pages)) {
-            let match;
-            while ((match = categoryRegex.exec(page.content)) !== null) {
-                categories.add(match[1].trim());
-            }
-        }
-        
-        return Array.from(categories).sort();
-    }
-    
-    /**
-     * Get pages that belong to a specific category
-     * @param {string} categoryName - Category name
-     * @returns {Array} Array of page titles
-     */
-    getPagesInCategory(categoryName) {
-        const pages = this.getAllPages();
-        const pagesInCategory = [];
-        const categoryRegex = new RegExp(`\\[\\[분류:${this.escapeRegex(categoryName)}\\]\\]`, 'gi');
-        
-        for (const [title, page] of Object.entries(pages)) {
-            if (categoryRegex.test(page.content)) {
-                pagesInCategory.push(title);
-            }
-        }
-        
-        return pagesInCategory.sort();
-    }
-    
-    /**
-     * Get categories that a page belongs to
-     * @param {string} pageTitle - Page title
-     * @returns {Array} Array of category names
-     */
-    getPageCategories(pageTitle) {
-        const page = this.getPage(pageTitle);
-        if (!page) return [];
-        
-        const categories = [];
-        const categoryRegex = /\[\[분류:([^\]]+)\]\]/g;
-        let match;
-        
-        while ((match = categoryRegex.exec(page.content)) !== null) {
-            categories.push(match[1].trim());
-        }
-        
-        return [...new Set(categories)]; // Remove duplicates
-    }
-    
-    /**
-     * Check if a page is a category page
-     * @param {string} pageTitle - Page title
-     * @returns {boolean} Whether the page is a category page
-     */
-    isCategoryPage(pageTitle) {
-        return pageTitle.startsWith('분류:');
-    }
-    
-    /**
-     * Get category name from category page title
-     * @param {string} pageTitle - Category page title
-     * @returns {string|null} Category name or null if not a category page
-     */
-    getCategoryNameFromTitle(pageTitle) {
-        if (this.isCategoryPage(pageTitle)) {
-            return pageTitle.substring(3); // Remove '분류:' prefix
-        }
-        return null;
-    }
-    
-    /**
-     * Escape regex special characters
-     * @param {string} text - Text to escape
-     * @returns {string} Escaped text
-     */
-    escapeRegex(text) {
-        return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    }
-    
-    /**
-     * Save an image to storage
-     * @param {string} name - Image name
-     * @param {string} dataUrl - Base64 data URL
-     * @param {number} size - File size in bytes
-     * @returns {boolean} Success status
-     */
-    saveImage(name, dataUrl, size) {
-        try {
-            const images = this.getAllImages();
-            
-            // Check storage quota (rough estimate)
-            const dataSize = dataUrl.length;
-            if (dataSize > 1024 * 1024) { // 1MB limit per image
-                return { success: false, error: '이미지가 너무 큽니다. 1MB 이하의 이미지를 업로드해주세요.' };
-            }
-            
-            images[name] = {
-                name,
-                data: dataUrl,
-                size,
-                uploaded: Date.now()
-            };
-            
-            localStorage.setItem(this.imagesKey, JSON.stringify(images));
-            return { success: true };
-        } catch (error) {
-            console.error('Error saving image:', error);
-            if (error.name === 'QuotaExceededError') {
-                return { success: false, error: '저장소 용량이 부족합니다. 일부 이미지를 삭제해주세요.' };
-            }
-            return { success: false, error: '이미지 저장에 실패했습니다.' };
-        }
-    }
-    
-    /**
-     * Get all images
-     * @returns {Object} Object containing all images
-     */
-    getAllImages() {
-        try {
-            const data = localStorage.getItem(this.imagesKey);
-            return data ? JSON.parse(data) : {};
-        } catch (error) {
-            console.error('Error loading images:', error);
-            return {};
-        }
-    }
-    
-    /**
-     * Get a specific image by name
-     * @param {string} name - Image name
-     * @returns {Object|null} Image object or null if not found
-     */
-    getImage(name) {
-        const images = this.getAllImages();
-        return images[name] || null;
-    }
-    
-    /**
-     * Delete an image
-     * @param {string} name - Image name
-     * @returns {boolean} Success status
-     */
-    deleteImage(name) {
-        try {
-            const images = this.getAllImages();
-            if (images[name]) {
-                delete images[name];
-                localStorage.setItem(this.imagesKey, JSON.stringify(images));
-                return true;
-            }
-            return false;
-        } catch (error) {
-            console.error('Error deleting image:', error);
-            return false;
-        }
-    }
-    
-    /**
-     * Get image names list
-     * @returns {Array} Array of image names
-     */
-    getImageNames() {
-        const images = this.getAllImages();
-        return Object.keys(images).sort();
-    }
-    
-    /**
-     * Get total images storage size
-     * @returns {number} Total size in bytes
-     */
-    getImagesSize() {
-        const images = this.getAllImages();
-        let totalSize = 0;
-        for (const image of Object.values(images)) {
-            totalSize += image.data.length;
-        }
-        return totalSize;
-    }
-    
-    /**
-     * Check if image name is valid
-     * @param {string} name - Image name to check
-     * @returns {boolean} Whether name is valid
-     */
-    isValidImageName(name) {
-        return /^[a-zA-Z0-9가-힣._-]+$/.test(name) && name.length <= 50;
-    }
-
-    /**
-     * Extract tags from page content
-     * @param {string} content - Page content
-     * @returns {Array} Array of tags
-     */
-    extractTags(content) {
-        const tags = [];
-        
-        // Pattern for hashtags with spaces: #tag name or #태그명
-        const tagPattern = /#([가-힣a-zA-Z0-9_][가-힣a-zA-Z0-9_\s]*[가-힣a-zA-Z0-9_]|[가-힣a-zA-Z0-9_]+)/g;
-        let match;
-        
-        while ((match = tagPattern.exec(content)) !== null) {
-            let tag = match[1].trim();
-            
-            // Remove trailing spaces and normalize
-            tag = tag.replace(/\s+/g, ' ').trim();
-            
-            if (tag && !tags.includes(tag)) {
-                tags.push(tag);
-            }
-        }
-        
-        return tags;
-    }
-
-    /**
-     * Get all unique tags from all pages
-     * @returns {Array} Array of all tags with counts
-     */
-    getAllTags() {
-        const pages = this.getAllPages();
-        const tagCounts = {};
-        
-        for (const page of Object.values(pages)) {
-            if (page.tags) {
-                for (const tag of page.tags) {
-                    tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-                }
-            }
-        }
-        
-        return Object.entries(tagCounts)
-            .map(([tag, count]) => ({ tag, count }))
-            .sort((a, b) => b.count - a.count);
-    }
-
-    /**
-     * Get pages by tag
-     * @param {string} tag - Tag to search for
-     * @returns {Array} Array of pages with the tag
-     */
-    getPagesByTag(tag) {
-        const pages = this.getAllPages();
-        const result = [];
-        const searchTag = tag.toLowerCase().trim();
-        
-        for (const [title, page] of Object.entries(pages)) {
-            if (page.tags && page.tags.some(pageTag => 
-                pageTag.toLowerCase().trim() === searchTag
-            )) {
-                result.push({
-                    title,
-                    page,
-                    modified: page.modified
-                });
-            }
-        }
-        
-        return result.sort((a, b) => b.modified - a.modified);
-    }
-
-    /**
-     * Get backlinks for a page (pages that link to this page)
-     * @param {string} pageTitle - Title of the page to find backlinks for
-     * @returns {Array} Array of pages that link to this page
-     */
-    getBacklinks(pageTitle) {
-        const pages = this.getAllPages();
-        const backlinks = [];
-        
-        for (const [title, page] of Object.entries(pages)) {
-            if (title === pageTitle) continue; // Skip self
-            
-            // Check if page content contains link to target page
-            const linkPattern = new RegExp(`\\[([^\\]]+)\\]\\(${this.escapeRegex(pageTitle)}\\)`, 'gi');
-            if (linkPattern.test(page.content)) {
-                backlinks.push({
-                    title,
-                    page,
-                    modified: page.modified
-                });
-            }
-        }
-        
-        return backlinks.sort((a, b) => b.modified - a.modified);
-    }
-
-    /**
-     * Get outgoing links from a page
-     * @param {string} pageTitle - Title of the page
-     * @returns {Array} Array of pages this page links to
-     */
-    getOutgoingLinks(pageTitle) {
-        const page = this.getPage(pageTitle);
-        if (!page) return [];
-        
-        const linkPattern = /\[([^\]]+)\]\(([^):/]+)\)/g;
-        const links = [];
-        let match;
-        
-        while ((match = linkPattern.exec(page.content)) !== null) {
-            const linkedPage = match[2];
-            if (linkedPage !== pageTitle && this.getPage(linkedPage)) {
-                links.push(linkedPage);
-            }
-        }
-        
-        return [...new Set(links)]; // Remove duplicates
-    }
-
-    /**
-     * Escape regex special characters
-     * @param {string} text - Text to escape
-     * @returns {string} Escaped text
-     */
-    escapeRegex(text) {
-        return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    }
-
-    /**
-     * Get page statistics with tags and links
-     * @returns {Object} Statistics object
-     */
-    getWikiStats() {
-        const pages = this.getAllPages();
-        const stats = {
-            totalPages: Object.keys(pages).length,
-            totalWords: 0,
-            totalCharacters: 0,
-            tagsCount: 0,
-            linksCount: 0,
-            mostConnectedPages: [],
-            popularTags: this.getAllTags().slice(0, 10)
-        };
-
-        const pageConnections = {};
-        
-        for (const [title, page] of Object.entries(pages)) {
-            stats.totalWords += page.content.split(/\s+/).filter(word => word.length > 0).length;
-            stats.totalCharacters += page.content.length;
-            
-            if (page.tags) {
-                stats.tagsCount += page.tags.length;
-            }
-            
-            const outgoingLinks = this.getOutgoingLinks(title);
-            const backlinks = this.getBacklinks(title);
-            const totalConnections = outgoingLinks.length + backlinks.length;
-            
-            stats.linksCount += outgoingLinks.length;
-            
-            pageConnections[title] = {
-                title,
-                connections: totalConnections,
-                outgoing: outgoingLinks.length,
-                incoming: backlinks.length
-            };
-        }
-        
-        stats.mostConnectedPages = Object.values(pageConnections)
-            .sort((a, b) => b.connections - a.connections)
-            .slice(0, 10);
-            
-        return stats;
-    }
-
-    /**
-     * Favorites management
+     * Get favorites from localStorage
      */
     getFavorites() {
         const favorites = localStorage.getItem(this.favoritesKey);
         return favorites ? JSON.parse(favorites) : [];
     }
 
-    addToFavorites(pageTitle) {
-        const favorites = this.getFavorites();
-        if (!favorites.includes(pageTitle)) {
-            favorites.push(pageTitle);
-            localStorage.setItem(this.favoritesKey, JSON.stringify(favorites));
-            return true;
-        }
-        return false;
-    }
-
-    removeFromFavorites(pageTitle) {
-        const favorites = this.getFavorites();
-        const index = favorites.indexOf(pageTitle);
-        if (index > -1) {
+    /**
+     * Add/remove page from favorites
+     */
+    toggleFavorite(title) {
+        let favorites = this.getFavorites();
+        const index = favorites.indexOf(title);
+        
+        if (index === -1) {
+            favorites.push(title);
+        } else {
             favorites.splice(index, 1);
-            localStorage.setItem(this.favoritesKey, JSON.stringify(favorites));
-            return true;
         }
-        return false;
-    }
-
-    isFavorite(pageTitle) {
-        return this.getFavorites().includes(pageTitle);
+        
+        localStorage.setItem(this.favoritesKey, JSON.stringify(favorites));
+        return favorites.includes(title);
     }
 
     /**
-     * Template management
+     * Get page templates from localStorage
      */
     getTemplates() {
         const templates = localStorage.getItem(this.templatesKey);
-        if (templates) {
-            return JSON.parse(templates);
-        }
-        
-        // Initialize default templates
-        const defaultTemplates = {
-            note: {
-                name: "노트 템플릿",
-                content: `# {{title}}
+        return templates ? JSON.parse(templates) : {
+            '노트': {
+                name: '노트',
+                content: `= {{title}} =
 
-## 개요
-<!-- 여기에 노트의 주요 내용 요약 -->
+== 개요 ==
 
-## 내용
-<!-- 상세 내용 작성 -->
 
-## 참고자료
-- 
-- 
+== 내용 ==
 
-## 태그
-#노트 #{{date}}`
+
+== 참고 ==
+
+[[분류:노트]]`
             },
-            meeting: {
-                name: "회의록 템플릿",
-                content: `# {{title}}
+            '회의': {
+                name: '회의',
+                content: `= {{title}} =
 
-**일시:** {{date}}
-**참석자:** 
-**장소:** 
+'''날짜:''' {{date}}
+'''참석자:''' 
 
-## 안건
+== 안건 ==
+
 1. 
-2. 
-3. 
 
-## 논의사항
-### 안건 1
-- 
+== 논의 내용 ==
 
-### 안건 2
-- 
 
-## 결정사항
-- 
+== 결정 사항 ==
 
-## 후속조치
-| 항목 | 담당자 | 마감일 |
-|------|--------|--------|
-|      |        |        |
 
-#회의록 #{{date}}`
+== 액션 아이템 ==
+
+* [ ] 
+
+[[분류:회의]]`
             },
-            project: {
-                name: "프로젝트 템플릿",
-                content: `# {{title}}
+            '프로젝트': {
+                name: '프로젝트',
+                content: `= {{title}} =
 
-## 프로젝트 개요
-<!-- 프로젝트 목표와 배경 -->
+== 프로젝트 개요 ==
 
-## 일정
-- **시작일:** 
-- **종료일:** 
-- **주요 마일스톤:**
-  - 
+'''목표:''' 
+'''기간:''' 
+'''담당자:''' 
 
-## 팀원
-- **프로젝트 매니저:** 
-- **개발자:** 
-- **디자이너:** 
+== 진행 상황 ==
 
-## 요구사항
-### 기능 요구사항
-1. 
-2. 
+* [ ] 
 
-### 비기능 요구사항
-1. 
-2. 
+== 참고 자료 ==
 
-## 진행상황
-- [ ] 요구사항 분석
-- [ ] 설계
-- [ ] 개발
-- [ ] 테스트
-- [ ] 배포
 
-## 이슈 및 리스크
-| 이슈 | 심각도 | 상태 | 담당자 |
-|------|--------|------|--------|
-|      |        |      |        |
-
-#프로젝트 #{{date}}`
+[[분류:프로젝트]]`
             },
-            diary: {
-                name: "일기 템플릿",
-                content: `# {{date}}
+            '일기': {
+                name: '일기',
+                content: `= {{date}} =
 
-## 오늘 한 일
-- 
-- 
+== 오늘의 일정 ==
 
-## 느낀 점
-<!-- 오늘의 감정이나 생각 -->
 
-## 배운 것
-<!-- 새로 알게 된 것이나 깨달은 점 -->
+== 있었던 일 ==
 
-## 내일 할 일
-- [ ] 
-- [ ] 
 
-## 기분
-😊 😐 😔 😤 😴
+== 생각과 느낌 ==
 
-#일기 #{{date}}`
+
+== 내일 할 일 ==
+
+* [ ] 
+
+[[분류:일기]]`
             },
-            reference: {
-                name: "참고자료 템플릿",
-                content: `# {{title}}
+            '참고자료': {
+                name: '참고자료',
+                content: `= {{title}} =
 
-## 기본 정보
-- **출처:** 
-- **저자:** 
-- **날짜:** {{date}}
-- **URL:** 
+== 요약 ==
 
-## 요약
-<!-- 핵심 내용 요약 -->
 
-## 주요 포인트
-1. 
-2. 
-3. 
+== 주요 내용 ==
 
-## 인용구
-> 
 
-## 관련 자료
-- [관련 페이지](페이지명)
-- 
+== 출처 ==
 
-## 내 생각
-<!-- 개인적인 의견이나 분석 -->
 
-#참고자료 #{{date}}`
+== 관련 링크 ==
+
+
+[[분류:참고자료]]`
             }
         };
-        
-        localStorage.setItem(this.templatesKey, JSON.stringify(defaultTemplates));
-        return defaultTemplates;
-    }
-
-    getTemplate(templateId) {
-        const templates = this.getTemplates();
-        return templates[templateId] || null;
     }
 
     /**
-     * Apply template to create page content
+     * Save templates to localStorage
      */
-    applyTemplate(templateId, pageTitle) {
-        const template = this.getTemplate(templateId);
-        if (!template) return '';
-        
-        const today = new Date();
-        const dateStr = today.toISOString().split('T')[0];
-        const dateKorean = today.toLocaleDateString('ko-KR');
-        
-        let content = template.content;
-        content = content.replace(/\{\{title\}\}/g, pageTitle);
-        content = content.replace(/\{\{date\}\}/g, dateKorean);
-        content = content.replace(/\{\{date-iso\}\}/g, dateStr);
-        
-        return content;
+    saveTemplates(templates) {
+        localStorage.setItem(this.templatesKey, JSON.stringify(templates));
     }
 
     /**
-     * Enhanced search functionality
+     * Clear page cache
      */
-    searchPages(query, options = {}) {
-        const {
-            includeContent = true,
-            includeTitle = true,
-            includeTags = true,
-            limit = 50,
-            excerpt = true
-        } = options;
-        
-        if (!query.trim()) return [];
-        
-        const pages = this.getAllPages();
-        const results = [];
-        const queryLower = query.toLowerCase();
-        const queryWords = queryLower.split(/\s+/).filter(word => word.length > 0);
-        
-        Object.entries(pages).forEach(([title, page]) => {
-            let score = 0;
-            let matches = [];
-            let excerpts = [];
-            
-            // Title matching (highest priority)
-            if (includeTitle) {
-                const titleLower = title.toLowerCase();
-                if (titleLower.includes(queryLower)) {
-                    score += 100;
-                    matches.push({ type: 'title', text: title });
-                }
-                
-                // Word-based title matching
-                queryWords.forEach(word => {
-                    if (titleLower.includes(word)) {
-                        score += 50;
-                    }
-                });
-            }
-            
-            // Content matching
-            if (includeContent && page.content) {
-                const contentLower = page.content.toLowerCase();
-                
-                // Exact phrase matching
-                if (contentLower.includes(queryLower)) {
-                    score += 30;
-                }
-                
-                // Word-based content matching
-                queryWords.forEach(word => {
-                    const wordCount = (contentLower.match(new RegExp(word, 'g')) || []).length;
-                    score += wordCount * 5;
-                    
-                    if (wordCount > 0 && excerpt) {
-                        // Find excerpts containing the word
-                        const sentences = page.content.split(/[.!?]\s+/);
-                        sentences.forEach(sentence => {
-                            if (sentence.toLowerCase().includes(word)) {
-                                excerpts.push(sentence.trim());
-                            }
-                        });
-                    }
-                });
-            }
-            
-            // Tags matching
-            if (includeTags && page.tags) {
-                page.tags.forEach(tag => {
-                    if (tag.toLowerCase().includes(queryLower)) {
-                        score += 20;
-                        matches.push({ type: 'tag', text: `#${tag}` });
-                    }
-                });
-            }
-            
-            if (score > 0) {
-                results.push({
-                    title,
-                    page,
-                    score,
-                    matches,
-                    excerpts: excerpts.slice(0, 3), // Limit to 3 excerpts
-                    highlighted: this.highlightText(title, queryWords)
-                });
-            }
-        });
-        
-        // Sort by score (descending) and return limited results
-        return results
-            .sort((a, b) => b.score - a.score)
-            .slice(0, limit);
+    clearCache() {
+        this.pageCache.clear();
     }
 
     /**
-     * Highlight search terms in text
+     * Export all data for backup
      */
-    highlightText(text, queryWords) {
-        let highlighted = text;
-        queryWords.forEach(word => {
-            const regex = new RegExp(`(${word})`, 'gi');
-            highlighted = highlighted.replace(regex, '<mark>$1</mark>');
-        });
-        return highlighted;
-    }
-
-    /**
-     * Get search suggestions
-     */
-    getSearchSuggestions(query, limit = 10) {
-        if (!query.trim()) return [];
-        
-        const pages = this.getAllPages();
-        const suggestions = new Set();
-        const queryLower = query.toLowerCase();
-        
-        // Title suggestions
-        Object.keys(pages).forEach(title => {
-            if (title.toLowerCase().includes(queryLower)) {
-                suggestions.add(title);
-            }
-        });
-        
-        // Tag suggestions
-        const allTags = this.getAllTags();
-        allTags.forEach(({ tag }) => {
-            if (tag.toLowerCase().includes(queryLower)) {
-                suggestions.add(`#${tag}`);
-            }
-        });
-        
-        return Array.from(suggestions).slice(0, limit);
-    }
-
-    /**
-     * Get comments for a page
-     * @param {string} pageTitle - Page title
-     * @returns {Array} Array of comments
-     */
-    getPageComments(pageTitle) {
+    async exportData() {
         try {
-            const comments = localStorage.getItem(this.commentsKey);
-            const allComments = comments ? JSON.parse(comments) : {};
-            return allComments[pageTitle] || [];
+            const pages = await this.getAllPages();
+            const settings = this.getSettings();
+            const recent = this.getRecentPages();
+            const favorites = this.getFavorites();
+            const templates = this.getTemplates();
+            const images = await this.getAllImages();
+
+            return {
+                pages,
+                settings,
+                recent,
+                favorites,
+                templates,
+                images,
+                exportDate: new Date().toISOString(),
+                version: '2.0'
+            };
         } catch (error) {
-            console.error('Error loading comments:', error);
+            console.error('Error exporting data:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Import data from backup (partial implementation)
+     */
+    async importData(data) {
+        try {
+            if (data.settings) {
+                this.saveSettings(data.settings);
+            }
+            
+            if (data.favorites) {
+                localStorage.setItem(this.favoritesKey, JSON.stringify(data.favorites));
+            }
+            
+            if (data.templates) {
+                this.saveTemplates(data.templates);
+            }
+
+            // Note: Pages and images would need to be imported through the API
+            // This would require additional server endpoints
+            
+            console.log('Data import completed (settings, favorites, templates)');
+            return true;
+        } catch (error) {
+            console.error('Error importing data:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Check if a page is a category page
+     */
+    isCategoryPage(title) {
+        return title && title.startsWith('분류:');
+    }
+
+    /**
+     * Get page titles (backward compatibility)
+     */
+    async getPageTitles() {
+        return await this.getAllPageTitles();
+    }
+
+    /**
+     * Get backlinks for a page
+     */
+    async getBacklinks(pageTitle) {
+        try {
+            const allPages = await this.getAllPages();
+            const backlinks = [];
+            
+            for (const [title, page] of Object.entries(allPages)) {
+                if (title === pageTitle) continue;
+                
+                // Check for links in content
+                const linkRegex = new RegExp(`\\[\\[${pageTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:\\|[^\\]]+)?\\]\\]`, 'g');
+                if (linkRegex.test(page.content)) {
+                    backlinks.push(title);
+                }
+            }
+            
+            return backlinks;
+        } catch (error) {
+            console.error('Error getting backlinks:', error);
             return [];
         }
     }
 
     /**
-     * Add a comment to a page
-     * @param {string} pageTitle - Page title
-     * @param {string} content - Comment content
-     * @param {string} author - Author name (optional)
-     * @returns {Object} Added comment
+     * Get outgoing links from a page
      */
-    addComment(pageTitle, content, author = '익명') {
-        try {
-            const comments = localStorage.getItem(this.commentsKey);
-            const allComments = comments ? JSON.parse(comments) : {};
-            
-            if (!allComments[pageTitle]) {
-                allComments[pageTitle] = [];
+    getOutgoingLinks(content) {
+        const links = [];
+        const linkRegex = /\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g;
+        let match;
+        
+        while ((match = linkRegex.exec(content)) !== null) {
+            const link = match[1];
+            if (!links.includes(link)) {
+                links.push(link);
             }
+        }
+        
+        return links;
+    }
 
-            const comment = {
-                id: Date.now().toString(),
-                content: content.trim(),
-                author: author.trim(),
-                created: Date.now(),
-                modified: Date.now()
+    /**
+     * Get comments for a page
+     */
+    async getComments(pageTitle) {
+        try {
+            const page = await this.getPage(pageTitle);
+            return page ? page.comments || [] : [];
+        } catch (error) {
+            console.error('Error getting comments:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Check if page exists
+     */
+    async pageExists(title) {
+        try {
+            const page = await this.getPage(title);
+            return !!page;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    /**
+     * Save draft to localStorage (for auto-save)
+     */
+    saveDraft(title, content) {
+        const draft = {
+            title,
+            content,
+            timestamp: Date.now()
+        };
+        localStorage.setItem('wiki-draft', JSON.stringify(draft));
+    }
+
+    /**
+     * Get saved draft from localStorage
+     */
+    getDraft() {
+        const draft = localStorage.getItem('wiki-draft');
+        return draft ? JSON.parse(draft) : null;
+    }
+
+    /**
+     * Clear saved draft
+     */
+    clearDraft() {
+        localStorage.removeItem('wiki-draft');
+    }
+
+    /**
+     * Get page statistics
+     */
+    async getStats() {
+        try {
+            const titles = await this.getAllPageTitles();
+            const images = await this.getAllImages();
+            const favorites = this.getFavorites();
+            
+            const totalPages = titles.length;
+            const totalImages = images.length;
+            const totalFavorites = favorites.length;
+            
+            // Calculate total content size
+            let totalContentSize = 0;
+            for (const title of titles) {
+                const page = await this.getPage(title);
+                if (page) {
+                    totalContentSize += page.content.length;
+                }
+            }
+            
+            return {
+                totalPages,
+                totalImages,
+                totalFavorites,
+                totalContentSize
             };
-
-            allComments[pageTitle].push(comment);
-            localStorage.setItem(this.commentsKey, JSON.stringify(allComments));
-            
-            return comment;
         } catch (error) {
-            console.error('Error adding comment:', error);
-            return null;
-        }
-    }
-
-    /**
-     * Update a comment
-     * @param {string} pageTitle - Page title
-     * @param {string} commentId - Comment ID
-     * @param {string} content - New content
-     * @returns {boolean} Success status
-     */
-    updateComment(pageTitle, commentId, content) {
-        try {
-            const comments = localStorage.getItem(this.commentsKey);
-            const allComments = comments ? JSON.parse(comments) : {};
-            
-            if (!allComments[pageTitle]) return false;
-
-            const comment = allComments[pageTitle].find(c => c.id === commentId);
-            if (!comment) return false;
-
-            comment.content = content.trim();
-            comment.modified = Date.now();
-
-            localStorage.setItem(this.commentsKey, JSON.stringify(allComments));
-            return true;
-        } catch (error) {
-            console.error('Error updating comment:', error);
-            return false;
-        }
-    }
-
-    /**
-     * Delete a comment
-     * @param {string} pageTitle - Page title
-     * @param {string} commentId - Comment ID
-     * @returns {boolean} Success status
-     */
-    deleteComment(pageTitle, commentId) {
-        try {
-            const comments = localStorage.getItem(this.commentsKey);
-            const allComments = comments ? JSON.parse(comments) : {};
-            
-            if (!allComments[pageTitle]) return false;
-
-            const index = allComments[pageTitle].findIndex(c => c.id === commentId);
-            if (index === -1) return false;
-
-            allComments[pageTitle].splice(index, 1);
-            localStorage.setItem(this.commentsKey, JSON.stringify(allComments));
-            return true;
-        } catch (error) {
-            console.error('Error deleting comment:', error);
-            return false;
-        }
-    }
-
-    /**
-     * Get total comment count for all pages
-     * @returns {number} Total comment count
-     */
-    getTotalCommentCount() {
-        try {
-            const comments = localStorage.getItem(this.commentsKey);
-            const allComments = comments ? JSON.parse(comments) : {};
-            
-            let total = 0;
-            for (const pageComments of Object.values(allComments)) {
-                total += pageComments.length;
-            }
-            return total;
-        } catch (error) {
-            console.error('Error counting comments:', error);
-            return 0;
+            console.error('Error getting stats:', error);
+            return {
+                totalPages: 0,
+                totalImages: 0,
+                totalFavorites: 0,
+                totalContentSize: 0
+            };
         }
     }
 }
-
-// Export for use in other modules
-window.WikiStorage = WikiStorage;

@@ -11,6 +11,10 @@ class WikiApp {
         this.isEditMode = false;
         this.hasUnsavedChanges = false;
         
+        // WebSocket connection for real-time updates
+        this.websocket = null;
+        this.initWebSocket();
+        
         this.elements = {};
         this.bindElements();
         this.init();
@@ -128,6 +132,73 @@ class WikiApp {
     }
 
     /**
+     * Initialize WebSocket connection for real-time updates
+     */
+    initWebSocket() {
+        try {
+            const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            
+            this.websocket = new WebSocket(wsUrl);
+            
+            this.websocket.onopen = () => {
+                console.log('WebSocket 연결됨');
+            };
+            
+            this.websocket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    this.handleRealtimeUpdate(data);
+                } catch (error) {
+                    console.error('WebSocket 메시지 처리 오류:', error);
+                }
+            };
+            
+            this.websocket.onclose = () => {
+                console.log('WebSocket 연결 해제됨');
+                // 재연결 시도
+                setTimeout(() => {
+                    this.initWebSocket();
+                }, 5000);
+            };
+            
+            this.websocket.onerror = (error) => {
+                console.error('WebSocket 오류:', error);
+            };
+        } catch (error) {
+            console.error('WebSocket 초기화 오류:', error);
+        }
+    }
+
+    /**
+     * Handle real-time updates from WebSocket
+     */
+    handleRealtimeUpdate(data) {
+        switch (data.type) {
+            case 'pageUpdated':
+                // 현재 보고 있는 페이지가 업데이트된 경우
+                if (data.page.title === this.currentPage && !this.isEditMode) {
+                    this.loadPage(this.currentPage, false); // 페이지 다시 로드
+                }
+                this.updateNavigation(); // 네비게이션 업데이트
+                break;
+                
+            case 'commentAdded':
+                // 현재 페이지에 댓글이 추가된 경우
+                if (data.pageTitle === this.currentPage) {
+                    this.updateComments();
+                }
+                break;
+                
+            case 'commentUpdated':
+            case 'commentDeleted':
+                // 댓글이 수정/삭제된 경우
+                this.updateComments();
+                break;
+        }
+    }
+
+    /**
      * Initialize the application
      */
     init() {
@@ -144,9 +215,9 @@ class WikiApp {
             this.setupCommentsEvents();
             
             // Load page after everything is set up
-            setTimeout(() => {
-                this.loadPage(this.currentPage);
-                this.updateNavigation();
+            setTimeout(async () => {
+                await this.loadPage(this.currentPage);
+                await this.updateNavigation();
                 this.updatePopularTags();
                 this.updateFavoritesList();
                 this.updateComments();
@@ -438,7 +509,7 @@ class WikiApp {
      * @param {string} pageName - Name of page to load
      * @param {boolean} pushState - Whether to push browser state
      */
-    loadPage(pageName, pushState = true) {
+    async loadPage(pageName, pushState = true) {
         this.showLoading();
         
         try {
@@ -448,7 +519,7 @@ class WikiApp {
                 return;
             }
 
-            const page = this.storage.getPage(pageName);
+            const page = await this.storage.getPage(pageName);
             
             if (!page) {
                 // Page doesn't exist, create it
@@ -528,7 +599,7 @@ class WikiApp {
      * Create a new page and start editing
      * @param {string} pageName - Name of new page
      */
-    createPageAndEdit(pageName) {
+    async createPageAndEdit(pageName) {
         try {
             this.currentPage = pageName;
             
@@ -546,10 +617,11 @@ class WikiApp {
             this.setEditMode(true);
             
             // Update navigation
-            this.updateNavigation();
+            await this.updateNavigation();
             
             // Update URL
-            history.pushState({ page: pageName }, '', `#${encodeURIComponent(pageName)}`);
+            const encodedPageName = this.pageNameToPunycode(pageName);
+            history.pushState({ page: pageName }, '', `/${encodedPageName}`);
             
             this.hasUnsavedChanges = false;
             this.updateSaveButton();
@@ -614,7 +686,7 @@ class WikiApp {
     /**
      * Save the current page
      */
-    savePage() {
+    async savePage() {
         const title = this.elements.pageTitleInput.value.trim();
         const content = this.elements.pageEditor.value;
         
@@ -624,40 +696,70 @@ class WikiApp {
             return;
         }
 
-        // Check if title changed
-        const oldTitle = this.currentPage !== title ? this.currentPage : null;
-        
-        if (this.storage.savePage(title, content, oldTitle)) {
-            this.currentPage = title;
+        try {
+            // Extract metadata (tags, categories, etc.)
+            const metadata = this.extractMetadata(content);
             
-            // Update view
-            this.elements.pageTitle.textContent = title;
+            const result = await this.storage.savePage(title, content, metadata);
             
-            // Check if this is a category page and render accordingly
-            if (this.storage.isCategoryPage(title)) {
-                const page = this.storage.getPage(title);
-                this.elements.pageContent.innerHTML = this.renderCategoryPage(page);
-            } else {
-                this.elements.pageContent.innerHTML = this.renderer.render(content);
+            if (result && result.status === 'saved') {
+                this.currentPage = title;
+                
+                // Update view
+                this.elements.pageTitle.textContent = title;
+                
+                // Check if this is a category page and render accordingly
+                if (this.storage.isCategoryPage(title)) {
+                    const page = await this.storage.getPage(title);
+                    this.elements.pageContent.innerHTML = this.renderCategoryPage(page);
+                } else {
+                    this.elements.pageContent.innerHTML = this.renderer.render(content);
+                }
+                
+                const page = result.page;
+                this.updateLastModified(new Date(page.lastModified).getTime());
+                
+                // Update navigation and URL
+                await this.updateNavigation();
+                const encodedTitle = this.pageNameToPunycode(title);
+                history.replaceState({ page: title }, '', `/${encodedTitle}`);
+                
+                // Exit edit mode
+                this.setEditMode(false);
+                
+                this.hasUnsavedChanges = false;
+                this.updateSaveButton();
+                
+                this.showNotification('페이지가 저장되었습니다!', 'success');
             }
-            
-            const page = this.storage.getPage(title);
-            this.updateLastModified(page.modified);
-            
-            // Update navigation and URL
-            this.updateNavigation();
-            history.replaceState({ page: title }, '', `#${encodeURIComponent(title)}`);
-            
-            // Exit edit mode
-            this.setEditMode(false);
-            
-            this.hasUnsavedChanges = false;
-            this.updateSaveButton();
-            
-            this.showNotification('페이지가 저장되었습니다!', 'success');
-        } else {
+        } catch (error) {
+            console.error('Error saving page:', error);
             this.showNotification('페이지 저장에 실패했습니다. 다시 시도해 주세요.', 'error');
         }
+    }
+
+    /**
+     * Extract metadata from page content
+     */
+    extractMetadata(content) {
+        const metadata = {};
+        
+        // Extract tags
+        const tagMatches = content.match(/#[\w가-힣]+/g);
+        if (tagMatches) {
+            metadata.tags = tagMatches.map(tag => tag.substring(1));
+        }
+        
+        // Extract categories
+        const categoryMatches = content.match(/\[\[분류:([^\]]+)\]\]/g);
+        if (categoryMatches) {
+            metadata.categories = categoryMatches.map(match => {
+                const categoryMatch = match.match(/\[\[분류:([^\]]+)\]\]/);
+                return categoryMatch ? categoryMatch[1] : '';
+            }).filter(cat => cat);
+        }
+        
+        return metadata;
     }
 
     /**
@@ -669,12 +771,15 @@ class WikiApp {
         }
         
         // Restore original values
-        const page = this.storage.getPage(this.currentPage);
-        if (page) {
-            this.elements.pageTitleInput.value = page.title;
-            this.elements.pageEditor.value = page.content;
-            this.updatePreview();
-        }
+        this.storage.getPage(this.currentPage).then(page => {
+            if (page) {
+                this.elements.pageTitleInput.value = page.title;
+                this.elements.pageEditor.value = page.content;
+                this.updatePreview();
+            }
+        }).catch(error => {
+            console.error('Error loading page for cancel:', error);
+        });
         
         this.setEditMode(false);
         this.hasUnsavedChanges = false;
@@ -709,47 +814,57 @@ class WikiApp {
         }
         
         // Check if page already exists
-        if (this.storage.getPage(title)) {
-            if (confirm(`페이지 "${title}"이 이미 존재합니다. 편집하시겠습니까?`)) {
-                this.hideNewPageModal();
-                this.navigateToPage(title);
-                this.setEditMode(true);
+        this.storage.getPage(title).then(page => {
+            if (page) {
+                if (confirm(`페이지 "${title}"이 이미 존재합니다. 편집하시겠습니까?`)) {
+                    this.hideNewPageModal();
+                    this.navigateToPage(title);
+                    this.setEditMode(true);
+                }
+                return;
             }
-            return;
-        }
-        
-        this.hideNewPageModal();
-        this.createPageAndEdit(title);
+            
+            this.hideNewPageModal();
+            this.createPageAndEdit(title);
+        }).catch(error => {
+            console.error('Error checking page:', error);
+            this.hideNewPageModal();
+            this.createPageAndEdit(title);
+        });
     }
 
     /**
      * Update navigation list
      */
-    updateNavigation() {
-        const titles = this.storage.getPageTitles();
-        
-        this.elements.pageList.innerHTML = titles.map(title => {
-            const isActive = title === this.currentPage;
-            const encodedTitle = this.pageNameToPunycode(title);
-            return `
-                <li>
-                    <a href="/${encodedTitle}" 
-                       data-page="${title}" 
-                       class="page-link ${isActive ? 'active' : ''}">
-                        ${this.escapeHtml(title)}
-                    </a>
-                </li>
-            `;
-        }).join('');
-        
-        // Bind page link events
-        this.elements.pageList.addEventListener('click', (e) => {
-            if (e.target.classList.contains('page-link')) {
-                e.preventDefault();
-                const pageName = e.target.dataset.page;
-                this.navigateToPage(pageName);
-            }
-        });
+    async updateNavigation() {
+        try {
+            const titles = await this.storage.getAllPageTitles();
+            
+            this.elements.pageList.innerHTML = titles.map(title => {
+                const isActive = title === this.currentPage;
+                const encodedTitle = this.pageNameToPunycode(title);
+                return `
+                    <li>
+                        <a href="/${encodedTitle}" 
+                           data-page="${title}" 
+                           class="page-link ${isActive ? 'active' : ''}">
+                            ${this.escapeHtml(title)}
+                        </a>
+                    </li>
+                `;
+            }).join('');
+            
+            // Bind page link events
+            this.elements.pageList.addEventListener('click', (e) => {
+                if (e.target.classList.contains('page-link')) {
+                    e.preventDefault();
+                    const pageName = e.target.dataset.page;
+                    this.navigateToPage(pageName);
+                }
+            });
+        } catch (error) {
+            console.error('Error updating navigation:', error);
+        }
     }
 
     /**
