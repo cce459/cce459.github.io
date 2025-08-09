@@ -151,6 +151,51 @@ class WikiApp {
     }
 
     /**
+     * Convert Korean/Unicode page name to punycode for URL
+     * @param {string} pageName - Original page name
+     * @returns {string} Punycode encoded page name
+     */
+    pageNameToPunycode(pageName) {
+        try {
+            // Use TextEncoder to convert to UTF-8, then base64url encode
+            const utf8Bytes = new TextEncoder().encode(pageName);
+            const base64 = btoa(String.fromCharCode(...utf8Bytes));
+            // Make URL safe by replacing characters
+            return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+        } catch (error) {
+            console.error('Error encoding page name:', error);
+            return encodeURIComponent(pageName);
+        }
+    }
+
+    /**
+     * Convert punycode URL back to original page name
+     * @param {string} encoded - Punycode encoded string
+     * @returns {string} Original page name
+     */
+    punycodeToPageName(encoded) {
+        try {
+            // Restore base64 format
+            let base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
+            // Add padding if needed
+            while (base64.length % 4) {
+                base64 += '=';
+            }
+            
+            const binaryString = atob(base64);
+            const utf8Bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                utf8Bytes[i] = binaryString.charCodeAt(i);
+            }
+            
+            return new TextDecoder().decode(utf8Bytes);
+        } catch (error) {
+            console.error('Error decoding page name:', error);
+            return decodeURIComponent(encoded);
+        }
+    }
+
+    /**
      * Setup event listeners
      */
     setupEventListeners() {
@@ -271,13 +316,30 @@ class WikiApp {
      * Setup URL routing
      */
     setupUrlRouting() {
-        // Handle initial URL
+        // Handle initial URL - check for both path-based and hash-based routing
+        const pathname = window.location.pathname;
         const hash = window.location.hash.substring(1);
-        if (hash) {
-            const decodedHash = decodeURIComponent(hash);
-            if (decodedHash !== this.currentPage) {
-                this.navigateToPage(decodedHash);
+        
+        let targetPage = null;
+        
+        // Check if we have a path-based route (excluding root)
+        if (pathname && pathname !== '/' && pathname !== '/index.html') {
+            const encodedPageName = pathname.substring(1); // Remove leading /
+            try {
+                targetPage = this.punycodeToPageName(encodedPageName);
+            } catch (error) {
+                console.warn('Failed to decode path, falling back to hash:', error);
             }
+        }
+        
+        // Fallback to hash-based routing if no path or decoding failed
+        if (!targetPage && hash) {
+            targetPage = decodeURIComponent(hash);
+        }
+        
+        // Navigate to the target page if it differs from current
+        if (targetPage && targetPage !== this.currentPage) {
+            this.navigateToPage(targetPage);
         }
 
         // Handle back/forward buttons
@@ -286,8 +348,9 @@ class WikiApp {
             this.loadPage(pageName, false); // Don't push state again
         });
 
-        // Push initial state
-        history.replaceState({ page: this.currentPage }, '', `#${encodeURIComponent(this.currentPage)}`);
+        // Push initial state with punycode URL
+        const encodedCurrentPage = this.pageNameToPunycode(this.currentPage);
+        history.replaceState({ page: this.currentPage }, '', `/${encodedCurrentPage}`);
     }
 
     /**
@@ -398,9 +461,10 @@ class WikiApp {
             // Update comments
             this.updateComments();
             
-            // Update URL
+            // Update URL with punycode encoding
             if (pushState) {
-                history.pushState({ page: pageName }, '', `#${encodeURIComponent(pageName)}`);
+                const encodedPageName = this.pageNameToPunycode(pageName);
+                history.pushState({ page: pageName }, '', `/${encodedPageName}`);
             }
             
             // Update recent pages
@@ -639,9 +703,10 @@ class WikiApp {
         
         this.elements.pageList.innerHTML = titles.map(title => {
             const isActive = title === this.currentPage;
+            const encodedTitle = this.pageNameToPunycode(title);
             return `
                 <li>
-                    <a href="#" 
+                    <a href="/${encodedTitle}" 
                        data-page="${title}" 
                        class="page-link ${isActive ? 'active' : ''}">
                         ${this.escapeHtml(title)}
@@ -671,15 +736,18 @@ class WikiApp {
             return;
         }
         
-        this.elements.recentList.innerHTML = recent.slice(0, 5).map(title => `
-            <li>
-                <a href="#" 
-                   data-page="${title}" 
-                   class="recent-link">
-                    ${this.escapeHtml(title)}
-                </a>
-            </li>
-        `).join('');
+        this.elements.recentList.innerHTML = recent.slice(0, 5).map(title => {
+            const encodedTitle = this.pageNameToPunycode(title);
+            return `
+                <li>
+                    <a href="/${encodedTitle}" 
+                       data-page="${title}" 
+                       class="recent-link">
+                        ${this.escapeHtml(title)}
+                    </a>
+                </li>
+            `;
+        }).join('');
         
         // Bind recent link events
         this.elements.recentList.addEventListener('click', (e) => {
@@ -1684,9 +1752,10 @@ class WikiApp {
 
         this.elements.favoritesList.innerHTML = favorites.map(title => {
             const isActive = title === this.currentPage;
+            const encodedTitle = this.pageNameToPunycode(title);
             return `
                 <li>
-                    <a href="#" data-page="${title}" class="page-link ${isActive ? 'active' : ''}" onclick="app.navigateToPage('${title}')">
+                    <a href="/${encodedTitle}" data-page="${title}" class="page-link ${isActive ? 'active' : ''}" onclick="app.navigateToPage('${title}')">
                         <i data-feather="star" style="width: 14px; height: 14px; fill: var(--accent-color);"></i>
                         ${title}
                     </a>

@@ -51,6 +51,18 @@ app.post("/pages/:title", (req, res) => {
   res.json({ status: "saved" });
 });
 
+// Handle all other routes by serving index.html (for client-side routing)
+app.get("*", (req, res) => {
+  // Skip API routes
+  if (req.path.startsWith("/pages")) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  
+  // Serve index.html for all page routes
+  res.sendFile(path.join(__dirname, "index.html"));
+});
+
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Wiki API 서버 실행됨: http://0.0.0.0:${PORT}`);
 });

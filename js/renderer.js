@@ -113,7 +113,9 @@ class WikiRenderer {
             const isInternal = !url.includes('://') && !url.startsWith('#');
             
             if (isInternal) {
-                return `<a href="#" class="internal-link" data-page="${url}">${text}</a>`;
+                // Generate punycode URL for internal links
+                const encodedUrl = window.app ? window.app.pageNameToPunycode(url) : encodeURIComponent(url);
+                return `<a href="/${encodedUrl}" class="internal-link" data-page="${url}">${text}</a>`;
             } else {
                 return `<a href="${url}" target="_blank" rel="noopener noreferrer">${text}</a>`;
             }
