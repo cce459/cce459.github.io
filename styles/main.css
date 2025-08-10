@@ -20,7 +20,7 @@
     --shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.15);
     --border-radius: 6px;
-    --font-family: 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', 'SimSun', 'Noto Sans SC', 'Source Han Sans SC', sans-serif;
+    --font-family: 'Microsoft YaHei', 'SimSun', 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Source Han Sans SC' !important;
     --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
 }
 
@@ -29,6 +29,11 @@ body {
     line-height: 1.6;
     color: var(--text-color);
     background-color: var(--background-color);
+}
+
+/* Force Chinese fonts for all text */
+* {
+    font-family: 'Microsoft YaHei', 'SimSun', 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Source Han Sans SC' !important;
 }
 
 /* App Layout */
@@ -1272,7 +1277,7 @@ body {
 /* 한글 폰트 최적화 */
 @media (max-width: 768px) {
     body {
-        font-family: 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', 'SimSun', 'Noto Sans SC', 'Source Han Sans SC', sans-serif;
+        font-family: 'Microsoft YaHei', 'SimSun', 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Source Han Sans SC' !important;
         word-break: keep-all;
         word-wrap: break-word;
     }

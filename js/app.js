@@ -1473,10 +1473,16 @@ class WikiApp {
             const dataUrl = await this.fileToDataUrl(file);
             console.log('File converted to data URL, size:', dataUrl.length);
             
-            // Save image
-            console.log('Calling storage.uploadImage with:', {finalName, size: file.size, type: file.type});
+            // Save image - add more detailed logging
+            console.log('Calling storage.uploadImage with params:', {
+                name: finalName, 
+                dataLength: dataUrl.length, 
+                size: file.size, 
+                mimeType: file.type
+            });
+            
             const result = await this.storage.uploadImage(finalName, dataUrl, file.size, file.type);
-            console.log('Upload result:', result);
+            console.log('Upload result received:', result);
             
             this.hideUploadProgress();
             
