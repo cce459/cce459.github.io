@@ -2238,17 +2238,21 @@ class WikiApp {
     /**
      * Update comments section
      */
-    updateComments() {
+    async updateComments() {
         if (!this.elements.commentsList) return;
 
-        const comments = this.storage.getPageComments(this.currentPage);
-        
-        if (comments.length === 0) {
-            this.elements.commentsList.innerHTML = '<div class="no-comments">첫 번째 댓글을 작성해보세요!</div>';
-            return;
-        }
+        try {
+            const comments = await this.storage.getPageComments(this.currentPage);
+            
+            // 댓글이 배열이 아닌 경우 빈 배열로 처리
+            const commentsList = Array.isArray(comments) ? comments : [];
+            
+            if (commentsList.length === 0) {
+                this.elements.commentsList.innerHTML = '<div class="no-comments">첫 번째 댓글을 작성해보세요!</div>';
+                return;
+            }
 
-        const html = comments.map(comment => {
+            const html = commentsList.map(comment => {
             const createdDate = new Date(comment.created).toLocaleString('ko-KR');
             const modifiedDate = comment.modified !== comment.created ? 
                 `(수정됨: ${new Date(comment.modified).toLocaleString('ko-KR')})` : '';
@@ -2272,8 +2276,12 @@ class WikiApp {
             `;
         }).join('');
 
-        this.elements.commentsList.innerHTML = html;
-        feather.replace();
+            this.elements.commentsList.innerHTML = html;
+            feather.replace();
+        } catch (error) {
+            console.error('Error updating comments:', error);
+            this.elements.commentsList.innerHTML = '<div class="no-comments">댓글을 불러올 수 없습니다.</div>';
+        }
     }
 
     /**

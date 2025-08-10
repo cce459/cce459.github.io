@@ -599,6 +599,13 @@ YouTube 동영상: [[htp://yt.VIDEO_ID]]
     }
 
     /**
+     * Get recent pages (alias for getRecentPages)
+     */
+    getRecent() {
+        return this.getRecentPages();
+    }
+
+    /**
      * Add page to recent list
      */
     addToRecent(title) {
