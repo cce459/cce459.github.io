@@ -14,9 +14,9 @@ class WikiRenderer {
     /**
      * Render wiki content to HTML
      * @param {string} content - Raw wiki content
-     * @returns {string} Rendered HTML
+     * @returns {Promise<string>} Rendered HTML
      */
-    render(content) {
+    async render(content) {
         if (!content) return '<p><em>이 페이지는 비어있습니다. 편집 버튼을 클릭하여 내용을 추가하세요.</em></p>';
 
         let html = content;
@@ -31,7 +31,7 @@ class WikiRenderer {
         html = this.renderStrikethrough(html);
         
         // Process wiki-specific rendering only (no markdown)
-        html = this.renderImages(html);
+        html = await this.renderImages(html);
         html = this.renderYouTubeEmbeds(html);
         html = this.renderNamewikiLinks(html);
         html = this.renderParagraphs(html);
@@ -526,54 +526,40 @@ class WikiRenderer {
      * @param {string} content - Content to process
      * @returns {string} Processed content
      */
-    renderImages(content) {
-        return content.replace(/!\[([^\]]+)\]/g, (match, imageRef) => {
+    async renderImages(content) {
+        // First collect all image references
+        const imageMatches = [...content.matchAll(/!\[([^\]]+)\]/g)];
+        
+        // Process each image match
+        for (const match of imageMatches) {
+            const imageRef = match[1];
             const parts = imageRef.split('|');
             const imageName = parts[0].trim();
             const caption = parts[1] ? parts[1].trim() : '';
             
-            // Try to fetch image directly from API endpoint
-            fetch(`/api/images/${encodeURIComponent(imageName)}`)
-                .then(response => {
-                    if (response.ok) {
-                        return response.json();
+            try {
+                // Try to fetch image synchronously
+                const response = await fetch(`/api/images/${encodeURIComponent(imageName)}`);
+                if (response.ok) {
+                    const image = await response.json();
+                    let imageHtml = `<img src="${image.data}" alt="${this.escapeHtml(imageName)}" title="${this.escapeHtml(imageName)}" style="max-width: 100%; height: auto;">`;
+                    if (caption) {
+                        imageHtml += `<div class="image-caption">${this.escapeHtml(caption)}</div>`;
                     }
+                    // Replace the match directly in content
+                    content = content.replace(match[0], imageHtml);
+                    console.log('Image rendered:', imageName);
+                } else {
                     throw new Error('Image not found');
-                })
-                .then(image => {
-                    console.log('Image loaded from API:', imageName);
-                    // Find and replace the placeholder - use setTimeout to ensure DOM is ready
-                    setTimeout(() => {
-                        const placeholders = document.querySelectorAll(`[data-image-placeholder]`);
-                        for (const placeholder of placeholders) {
-                            if (placeholder.getAttribute('data-image-placeholder') === imageName) {
-                                let html = `<img src="${image.data}" alt="${this.escapeHtml(imageName)}" title="${this.escapeHtml(imageName)}" style="max-width: 100%; height: auto;">`;
-                                if (caption) {
-                                    html += `<div class="image-caption">${this.escapeHtml(caption)}</div>`;
-                                }
-                                placeholder.outerHTML = html;
-                                console.log('Image placeholder replaced successfully for:', imageName);
-                                break;
-                            }
-                        }
-                    }, 100);
-                })
-                .catch(error => {
-                    console.error('Error loading image:', imageName, error);
-                    setTimeout(() => {
-                        const placeholders = document.querySelectorAll(`[data-image-placeholder]`);
-                        for (const placeholder of placeholders) {
-                            if (placeholder.getAttribute('data-image-placeholder') === imageName) {
-                                placeholder.outerHTML = `<span style="color: #ef4444; font-style: italic;">[이미지 "${this.escapeHtml(imageName)}"를 찾을 수 없습니다]</span>`;
-                                break;
-                            }
-                        }
-                    }, 100);
-                });
-            
-            // Return placeholder that will be replaced when image loads
-            return `<div data-image-placeholder="${this.escapeHtml(imageName)}" style="padding: 1rem; border: 1px dashed #ccc; text-align: center; color: #666;">이미지 로딩 중: ${this.escapeHtml(imageName)}</div>`;
-        });
+                }
+            } catch (error) {
+                console.error('Error loading image:', imageName, error);
+                // Replace with error message
+                content = content.replace(match[0], `<span style="color: #ef4444; font-style: italic;">[이미지 "${this.escapeHtml(imageName)}"를 찾을 수 없습니다]</span>`);
+            }
+        }
+        
+        return content;
     }
 
     /**

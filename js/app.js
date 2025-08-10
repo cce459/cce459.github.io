@@ -312,8 +312,8 @@ class WikiApp {
         });
 
         // Live preview in edit mode
-        this.elements.pageEditor.addEventListener('input', () => {
-            this.updatePreview();
+        this.elements.pageEditor.addEventListener('input', async () => {
+            await this.updatePreview();
             this.hasUnsavedChanges = true;
             this.updateSaveButton();
         });
@@ -540,14 +540,14 @@ class WikiApp {
             
             this.elements.pageContent.innerHTML = this.storage.isCategoryPage(page.title) 
                 ? this.renderCategoryPage(page) 
-                : this.renderer.render(page.content);
+                : await this.renderer.render(page.content);
             
             this.updateLastModified(page.lastModified);
             
             // Update edit form
             this.elements.pageTitleInput.value = page.title;
             this.elements.pageEditor.value = page.content;
-            this.updatePreview();
+            await this.updatePreview();
             
             // Update navigation
             this.updateNavigation();
@@ -684,7 +684,7 @@ class WikiApp {
     /**
      * Update live preview
      */
-    updatePreview() {
+    async updatePreview() {
         const content = this.elements.pageEditor.value;
         const title = this.elements.pageTitleInput.value.trim();
         
@@ -693,7 +693,7 @@ class WikiApp {
             const mockPage = { title, content };
             this.elements.previewContent.innerHTML = this.renderCategoryPage(mockPage);
         } else {
-            this.elements.previewContent.innerHTML = this.renderer.render(content);
+            this.elements.previewContent.innerHTML = await this.renderer.render(content);
         }
     }
 
