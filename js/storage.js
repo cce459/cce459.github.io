@@ -606,6 +606,196 @@ YouTube 동영상: [[htp://yt.VIDEO_ID]]
     }
 
     /**
+     * Get all tags from all pages
+     */
+    async getAllTags() {
+        try {
+            const allPages = await this.getAllPages();
+            const tagCounts = {};
+            
+            for (const [title, page] of Object.entries(allPages)) {
+                const content = page.content || page;
+                const tags = this.extractTags(content);
+                
+                tags.forEach(tag => {
+                    tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+                });
+            }
+            
+            // Sort tags by frequency
+            return Object.entries(tagCounts)
+                .sort(([,a], [,b]) => b - a)
+                .map(([tag, count]) => ({ tag, count }));
+        } catch (error) {
+            console.error('Error getting all tags:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Extract tags from content
+     */
+    extractTags(content) {
+        const tags = [];
+        const tagRegex = /#([가-힣a-zA-Z0-9_\-\s]+?)(?=\s|$|#)/g;
+        let match;
+        
+        while ((match = tagRegex.exec(content)) !== null) {
+            const tag = match[1].trim();
+            if (tag && !tags.includes(tag)) {
+                tags.push(tag);
+            }
+        }
+        
+        return tags;
+    }
+
+    /**
+     * Get category name from title
+     */
+    getCategoryNameFromTitle(title) {
+        if (title && title.startsWith('분류:')) {
+            return title.substring(3);
+        }
+        return null;
+    }
+
+    /**
+     * Get pages in a category
+     */
+    async getPagesInCategory(categoryName) {
+        try {
+            const allPages = await this.getAllPages();
+            const pages = [];
+            
+            for (const [title, page] of Object.entries(allPages)) {
+                const content = page.content || page;
+                const categoryRegex = new RegExp(`\\[\\[분류:${categoryName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\]\\]`, 'g');
+                if (categoryRegex.test(content)) {
+                    pages.push(title);
+                }
+            }
+            
+            return pages;
+        } catch (error) {
+            console.error('Error getting pages in category:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get all categories
+     */
+    async getAllCategories() {
+        try {
+            const allPages = await this.getAllPages();
+            const categories = new Set();
+            
+            for (const [title, page] of Object.entries(allPages)) {
+                const content = page.content || page;
+                const categoryRegex = /\[\[분류:([^\]]+)\]\]/g;
+                let match;
+                
+                while ((match = categoryRegex.exec(content)) !== null) {
+                    categories.add(match[1]);
+                }
+            }
+            
+            return Array.from(categories);
+        } catch (error) {
+            console.error('Error getting all categories:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Delete a page
+     */
+    async deletePage(title) {
+        try {
+            if (this.isGitHubPages) {
+                // GitHub Pages: localStorage에서 삭제
+                const pages = this.getLocalPages();
+                if (pages[title]) {
+                    delete pages[title];
+                    localStorage.setItem(this.pagesKey, JSON.stringify(pages));
+                    return true;
+                }
+                return false;
+            } else {
+                // Replit: 서버 API 사용
+                const response = await fetch(`${this.apiBaseUrl}/${encodeURIComponent(title)}`, {
+                    method: 'DELETE'
+                });
+                return response.ok;
+            }
+        } catch (error) {
+            console.error('Error deleting page:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Get page history (simplified)
+     */
+    getPageHistory(title) {
+        // 간단한 히스토리 구현
+        return [{
+            version: 1,
+            timestamp: new Date().toISOString(),
+            author: 'Anonymous',
+            summary: '페이지 생성'
+        }];
+    }
+
+    /**
+     * Export all data
+     */
+    async exportData() {
+        try {
+            const pages = this.getLocalPages();
+            const settings = this.getSettings();
+            const favorites = this.getFavorites();
+            const recent = this.getRecentPages();
+            
+            return {
+                pages,
+                settings,
+                favorites,
+                recent,
+                exportedAt: new Date().toISOString()
+            };
+        } catch (error) {
+            console.error('Error exporting data:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Import data
+     */
+    importData(data) {
+        try {
+            if (data.pages) {
+                localStorage.setItem(this.pagesKey, JSON.stringify(data.pages));
+            }
+            if (data.settings) {
+                localStorage.setItem(this.settingsKey, JSON.stringify(data.settings));
+            }
+            if (data.favorites) {
+                localStorage.setItem(this.favoritesKey, JSON.stringify(data.favorites));
+            }
+            if (data.recent) {
+                localStorage.setItem(this.recentKey, JSON.stringify(data.recent));
+            }
+            return true;
+        } catch (error) {
+            console.error('Error importing data:', error);
+            return false;
+        }
+    }
+
+    /**
      * Add page to recent list
      */
     addToRecent(title) {
