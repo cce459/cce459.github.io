@@ -542,22 +542,33 @@ class WikiRenderer {
                 })
                 .then(image => {
                     console.log('Image loaded from API:', imageName);
-                    // Find and replace the placeholder
-                    const placeholder = document.querySelector(`[data-image-placeholder="${imageName}"]`);
-                    if (placeholder) {
-                        let html = `<img src="${image.data}" alt="${this.escapeHtml(imageName)}" title="${this.escapeHtml(imageName)}" style="max-width: 100%; height: auto;">`;
-                        if (caption) {
-                            html += `<div class="image-caption">${this.escapeHtml(caption)}</div>`;
+                    // Find and replace the placeholder - use setTimeout to ensure DOM is ready
+                    setTimeout(() => {
+                        const placeholders = document.querySelectorAll(`[data-image-placeholder]`);
+                        for (const placeholder of placeholders) {
+                            if (placeholder.getAttribute('data-image-placeholder') === imageName) {
+                                let html = `<img src="${image.data}" alt="${this.escapeHtml(imageName)}" title="${this.escapeHtml(imageName)}" style="max-width: 100%; height: auto;">`;
+                                if (caption) {
+                                    html += `<div class="image-caption">${this.escapeHtml(caption)}</div>`;
+                                }
+                                placeholder.outerHTML = html;
+                                console.log('Image placeholder replaced successfully for:', imageName);
+                                break;
+                            }
                         }
-                        placeholder.outerHTML = html;
-                    }
+                    }, 100);
                 })
                 .catch(error => {
                     console.error('Error loading image:', imageName, error);
-                    const placeholder = document.querySelector(`[data-image-placeholder="${imageName}"]`);
-                    if (placeholder) {
-                        placeholder.outerHTML = `<span style="color: #ef4444; font-style: italic;">[이미지 "${this.escapeHtml(imageName)}"를 찾을 수 없습니다]</span>`;
-                    }
+                    setTimeout(() => {
+                        const placeholders = document.querySelectorAll(`[data-image-placeholder]`);
+                        for (const placeholder of placeholders) {
+                            if (placeholder.getAttribute('data-image-placeholder') === imageName) {
+                                placeholder.outerHTML = `<span style="color: #ef4444; font-style: italic;">[이미지 "${this.escapeHtml(imageName)}"를 찾을 수 없습니다]</span>`;
+                                break;
+                            }
+                        }
+                    }, 100);
                 });
             
             // Return placeholder that will be replaced when image loads
