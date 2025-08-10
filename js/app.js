@@ -522,6 +522,7 @@ class WikiApp {
             const page = await this.storage.getPage(pageName);
             
             if (!page) {
+                console.log(`Page "${pageName}" not found, creating new page`);
                 // Page doesn't exist, create it
                 this.createPageAndEdit(pageName);
                 this.hideLoading();
@@ -530,17 +531,20 @@ class WikiApp {
 
             this.currentPage = pageName;
             
-            // Update view - ensure title is properly displayed as string
-            this.elements.pageTitle.textContent = typeof page.title === 'string' ? page.title : String(page.title);
+            // Show the page content
+            this.elements.pageTitle.textContent = page.title;
             
-            // Check if this is a category page and render accordingly
-            if (this.storage.isCategoryPage(page.title)) {
-                this.elements.pageContent.innerHTML = this.renderCategoryPage(page);
-            } else {
-                this.elements.pageContent.innerHTML = this.renderer.render(page.content);
+            // Validate page data structure
+            if (!page.content) {
+                console.warn('Page content is missing, using empty content');
+                page.content = '';
             }
             
-            this.updateLastModified(page.modified);
+            this.elements.pageContent.innerHTML = this.storage.isCategoryPage(page.title) 
+                ? this.renderCategoryPage(page) 
+                : this.renderer.render(page.content);
+            
+            this.updateLastModified(page.lastModified);
             
             // Update edit form
             this.elements.pageTitleInput.value = page.title;
@@ -582,6 +586,14 @@ class WikiApp {
             // Show fallback content
             this.elements.pageTitle.textContent = pageName;
             this.elements.pageContent.innerHTML = '<p>페이지를 로드하는 중 오류가 발생했습니다. 새로고침해 주세요.</p>';
+            
+            // Try to initialize the page if it doesn't exist
+            if (pageName === '대문') {
+                this.elements.pageContent.innerHTML = `
+                    <p>위키 시스템이 초기화되고 있습니다...</p>
+                    <p>잠시 후 페이지를 다시 로드해주세요.</p>
+                `;
+            }
         } finally {
             this.hideLoading();
         }
