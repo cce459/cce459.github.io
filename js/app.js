@@ -750,7 +750,13 @@ class WikiApp {
             }
         } catch (error) {
             console.error('Error saving page:', error);
-            this.showNotification('페이지 저장에 실패했습니다. 다시 시도해 주세요.', 'error');
+            let errorMessage = '페이지 저장에 실패했습니다. ';
+            if (error.message) {
+                errorMessage += `오류: ${error.message}`;
+            } else {
+                errorMessage += '다시 시도해 주세요.';
+            }
+            this.showNotification(errorMessage, 'error');
         }
     }
 

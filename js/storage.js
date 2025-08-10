@@ -100,11 +100,22 @@ YouTube 동영상: [[htp://yt.VIDEO_ID]]
      */
     async getAllPageTitles() {
         try {
-            const response = await fetch(this.apiBaseUrl);
+            console.log('Fetching page titles from:', this.apiBaseUrl);
+            const response = await fetch(this.apiBaseUrl, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin'
+            });
+            console.log('Response status:', response.status);
+            console.log('Response ok:', response.ok);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            return await response.json();
+            const data = await response.json();
+            console.log('Page titles data:', data);
+            return data;
         } catch (error) {
             console.error('Error fetching page titles:', error);
             console.error('Failed URL:', this.apiBaseUrl);
@@ -147,16 +158,28 @@ YouTube 동영상: [[htp://yt.VIDEO_ID]]
      */
     async getPage(title) {
         try {
+            console.log('Getting page:', title);
             // Check cache first
             if (this.pageCache.has(title)) {
                 const cached = this.pageCache.get(title);
                 if (Date.now() - cached.timestamp < 30000) { // 30초 캐시
+                    console.log('Using cached page for:', title);
                     return cached.data;
                 }
             }
             
-            const response = await fetch(`${this.apiBaseUrl}/${encodeURIComponent(title)}`);
+            const url = `${this.apiBaseUrl}/${encodeURIComponent(title)}`;
+            console.log('Fetching page from URL:', url);
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin'
+            });
+            console.log('Page response status:', response.status);
             if (response.status === 404) {
+                console.log('Page not found:', title);
                 return null;
             }
             if (!response.ok) {
@@ -164,6 +187,7 @@ YouTube 동영상: [[htp://yt.VIDEO_ID]]
             }
             
             const page = await response.json();
+            console.log('Page data received:', page);
             
             // Cache the result
             this.pageCache.set(title, {
@@ -188,22 +212,33 @@ YouTube 동영상: [[htp://yt.VIDEO_ID]]
      */
     async savePage(title, content, metadata = {}) {
         try {
-            const response = await fetch(`${this.apiBaseUrl}/${encodeURIComponent(title)}`, {
+            const url = `${this.apiBaseUrl}/${encodeURIComponent(title)}`;
+            const requestBody = { content, metadata };
+            
+            console.log('Saving page:', title);
+            console.log('Save URL:', url);
+            console.log('Request body:', requestBody);
+            
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    content,
-                    metadata
-                })
+                credentials: 'same-origin',
+                body: JSON.stringify(requestBody)
             });
 
+            console.log('Save response status:', response.status);
+            console.log('Save response ok:', response.ok);
+
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorText = await response.text();
+                console.error('Save error response:', errorText);
+                throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
             }
 
             const result = await response.json();
+            console.log('Save result:', result);
             
             // Update cache
             this.pageCache.set(title, {
@@ -219,7 +254,10 @@ YouTube 동영상: [[htp://yt.VIDEO_ID]]
             console.error('Error saving page:', error);
             console.error('Failed URL:', `${this.apiBaseUrl}/${encodeURIComponent(title)}`);
             console.error('Request body:', JSON.stringify({ content, metadata }));
-            console.error('Error details:', error.message, error.stack);
+            console.error('Error type:', typeof error);
+            console.error('Error name:', error.name);
+            console.error('Error message:', error.message);
+            if (error.stack) console.error('Error stack:', error.stack);
             throw error;
         }
     }
