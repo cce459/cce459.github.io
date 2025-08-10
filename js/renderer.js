@@ -7,8 +7,8 @@ class WikiRenderer {
         this.internalLinkPattern = /\[([^\]]+)\]\(([^):/]+)\)(?!\w)/g;
         // Namuwiki-style link pattern [[target|display]] or [[target]]
         this.namuwikiLinkPattern = /\[\[([^|\]]+)(?:\|([^\]]+))?\]\]/g;
-        // YouTube embed pattern [[htp://yt.VIDEO_ID]]
-        this.youtubeEmbedPattern = /\[\[htp:\/\/yt\.([a-zA-Z0-9_-]+)\]\]/g;
+        // YouTube embed pattern - supports both [[htp://yt.VIDEO_ID]] and [[htp://VIDEO_ID.yt]]
+        this.youtubeEmbedPattern = /\[\[htp:\/\/(?:yt\.([a-zA-Z0-9_-]+)|([a-zA-Z0-9_-]+)\.yt)\]\]/g;
     }
 
     /**
@@ -105,7 +105,9 @@ class WikiRenderer {
      * @returns {string} Processed content
      */
     renderYouTubeEmbeds(content) {
-        return content.replace(this.youtubeEmbedPattern, (match, videoId) => {
+        return content.replace(this.youtubeEmbedPattern, (match, videoId1, videoId2) => {
+            // Handle both pattern formats: [[htp://yt.VIDEO_ID]] or [[htp://VIDEO_ID.yt]]
+            const videoId = videoId1 || videoId2;
             // Sanitize video ID to prevent XSS
             const cleanVideoId = videoId.replace(/[^a-zA-Z0-9_-]/g, '');
             if (!cleanVideoId) return match;
@@ -132,7 +134,7 @@ class WikiRenderer {
     renderNamewikiLinks(content) {
         return content.replace(this.namuwikiLinkPattern, (match, target, display) => {
             // Skip YouTube embeds (they should be processed by renderYouTubeEmbeds first)
-            if (target.startsWith('htp://yt.')) {
+            if (target.startsWith('htp://yt.') || target.match(/^htp:\/\/[a-zA-Z0-9_-]+\.yt$/)) {
                 return match;
             }
             
