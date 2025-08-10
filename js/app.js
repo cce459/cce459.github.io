@@ -7,6 +7,9 @@ class WikiApp {
         this.renderer = new WikiRenderer();
         this.search = null;
         
+        // Make app instance globally available for renderer
+        window.app = this;
+        
         this.currentPage = '대문';
         this.isEditMode = false;
         this.hasUnsavedChanges = false;

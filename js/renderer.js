@@ -532,23 +532,36 @@ class WikiRenderer {
             const imageName = parts[0].trim();
             const caption = parts[1] ? parts[1].trim() : '';
             
-            // Get image from storage
-            if (typeof window !== 'undefined' && window.WikiStorage) {
-                const storage = new window.WikiStorage();
-                const image = storage.getImage(imageName);
-                
-                if (image) {
-                    let html = `<img src="${image.data}" alt="${this.escapeHtml(imageName)}" title="${this.escapeHtml(imageName)}">`;
-                    if (caption) {
-                        html += `<div class="image-caption">${this.escapeHtml(caption)}</div>`;
+            // Try to fetch image directly from API endpoint
+            fetch(`/api/images/${encodeURIComponent(imageName)}`)
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
                     }
-                    return html;
-                } else {
-                    return `<span style="color: #ef4444; font-style: italic;">[이미지 "${this.escapeHtml(imageName)}"를 찾을 수 없습니다]</span>`;
-                }
-            }
+                    throw new Error('Image not found');
+                })
+                .then(image => {
+                    console.log('Image loaded from API:', imageName);
+                    // Find and replace the placeholder
+                    const placeholder = document.querySelector(`[data-image-placeholder="${imageName}"]`);
+                    if (placeholder) {
+                        let html = `<img src="${image.data}" alt="${this.escapeHtml(imageName)}" title="${this.escapeHtml(imageName)}" style="max-width: 100%; height: auto;">`;
+                        if (caption) {
+                            html += `<div class="image-caption">${this.escapeHtml(caption)}</div>`;
+                        }
+                        placeholder.outerHTML = html;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading image:', imageName, error);
+                    const placeholder = document.querySelector(`[data-image-placeholder="${imageName}"]`);
+                    if (placeholder) {
+                        placeholder.outerHTML = `<span style="color: #ef4444; font-style: italic;">[이미지 "${this.escapeHtml(imageName)}"를 찾을 수 없습니다]</span>`;
+                    }
+                });
             
-            return match; // Fallback if storage not available
+            // Return placeholder that will be replaced when image loads
+            return `<div data-image-placeholder="${this.escapeHtml(imageName)}" style="padding: 1rem; border: 1px dashed #ccc; text-align: center; color: #666;">이미지 로딩 중: ${this.escapeHtml(imageName)}</div>`;
         });
     }
 

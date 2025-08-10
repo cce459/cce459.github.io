@@ -285,6 +285,30 @@ app.get("/api/images", async (req, res) => {
   }
 });
 
+// GET endpoint for individual image by name
+app.get("/api/images/:name", async (req, res) => {
+  try {
+    const name = decodeURIComponent(req.params.name);
+    
+    let image;
+    if (isDatabaseAvailable && db) {
+      [image] = await db.select().from(images).where(eq(images.name, name));
+    } else {
+      const allImages = await fileStorage.getAllImages();
+      image = allImages.find(img => img.name === name);
+    }
+    
+    if (!image) {
+      return res.status(404).json({ error: "Image not found" });
+    }
+    
+    res.json(image);
+  } catch (error) {
+    console.error('Error fetching image:', error);
+    res.status(500).json({ error: "Failed to fetch image" });
+  }
+});
+
 app.delete("/api/images/:name", async (req, res) => {
   try {
     const name = req.params.name;
