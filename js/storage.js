@@ -635,6 +635,14 @@ YouTube 동영상: [[htp://yt.VIDEO_ID]]
     }
 
     /**
+     * Check if a page is favorited
+     */
+    isFavorite(title) {
+        const favorites = this.getFavorites();
+        return favorites.includes(title);
+    }
+
+    /**
      * Get page templates from localStorage
      */
     getTemplates() {
