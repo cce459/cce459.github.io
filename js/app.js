@@ -1916,20 +1916,27 @@ class WikiApp {
     /**
      * Update popular tags in sidebar
      */
-    updatePopularTags() {
+    async updatePopularTags() {
         if (!this.elements.popularTags) return;
         
-        const allTags = this.storage.getAllTags();
-        const topTags = allTags.slice(0, 10);
+        try {
+            const allTags = await this.storage.getAllTags();
+            // getAllTags가 배열이 아닌 경우 처리
+            const tagArray = Array.isArray(allTags) ? allTags : [];
+            const topTags = tagArray.slice(0, 10);
         
         if (topTags.length === 0) {
             this.elements.popularTags.innerHTML = '<p class="text-muted">태그가 없습니다.</p>';
             return;
         }
         
-        this.elements.popularTags.innerHTML = topTags.map(({ tag, count }) => 
-            `<span class="wiki-tag" data-count="${count}" onclick="app.showTaggedPages('${tag}')">#${tag}</span>`
-        ).join('');
+            this.elements.popularTags.innerHTML = topTags.map(({ tag, count }) => 
+                `<span class="wiki-tag" data-count="${count}" onclick="app.showTaggedPages('${tag}')">#${tag}</span>`
+            ).join('');
+        } catch (error) {
+            console.error('Error updating popular tags:', error);
+            this.elements.popularTags.innerHTML = '<p class="text-muted">태그를 불러올 수 없습니다.</p>';
+        }
     }
 
     /**

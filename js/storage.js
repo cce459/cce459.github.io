@@ -796,6 +796,122 @@ YouTube 동영상: [[htp://yt.VIDEO_ID]]
     }
 
     /**
+     * Get pages by tag
+     */
+    async getPagesByTag(tag) {
+        try {
+            const allPages = await this.getAllPages();
+            const taggedPages = [];
+            
+            for (const [title, page] of Object.entries(allPages)) {
+                const content = page.content || page;
+                const tags = this.extractTags(content);
+                
+                if (tags.includes(tag)) {
+                    taggedPages.push({ title, page });
+                }
+            }
+            
+            return taggedPages;
+        } catch (error) {
+            console.error('Error getting pages by tag:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Show tagged pages (for compatibility)
+     */
+    async showTaggedPages(tag) {
+        return this.getPagesByTag(tag);
+    }
+
+    /**
+     * Show backlinks for a page
+     */
+    async showBacklinks(pageTitle) {
+        try {
+            const allPages = await this.getAllPages();
+            const backlinks = [];
+            
+            for (const [title, page] of Object.entries(allPages)) {
+                if (title === pageTitle) continue;
+                
+                const content = page.content || page;
+                // Check for links to the target page
+                const linkRegex = new RegExp(`\\[\\[${pageTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([|\\]]|\\|[^\\]]*\\])`, 'g');
+                if (linkRegex.test(content)) {
+                    backlinks.push({ title, page });
+                }
+            }
+            
+            return backlinks;
+        } catch (error) {
+            console.error('Error getting backlinks:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get stats for the wiki
+     */
+    async getStats() {
+        try {
+            const allPages = await this.getAllPages();
+            const pageCount = Object.keys(allPages).length;
+            const totalWords = Object.values(allPages).reduce((total, page) => {
+                const content = page.content || page;
+                return total + (content.match(/\S+/g) || []).length;
+            }, 0);
+            
+            const categories = await this.getAllCategories();
+            const tags = await this.getAllTags();
+            
+            return {
+                pageCount,
+                totalWords,
+                categoryCount: categories.length,
+                tagCount: tags.length,
+                avgWordsPerPage: Math.round(totalWords / pageCount) || 0
+            };
+        } catch (error) {
+            console.error('Error getting stats:', error);
+            return {
+                pageCount: 0,
+                totalWords: 0,
+                categoryCount: 0,
+                tagCount: 0,
+                avgWordsPerPage: 0
+            };
+        }
+    }
+
+    /**
+     * Check if a page is a category page
+     */
+    isCategoryPage(title) {
+        return title && title.startsWith('분류:');
+    }
+
+    /**
+     * Add page to recent list
+     */
+    addToRecent(title) {
+        let recent = this.getRecentPages();
+        
+        // Remove if already exists
+        recent = recent.filter(t => t !== title);
+        
+        // Add to beginning
+        recent.unshift(title);
+        
+        // Keep only last 10
+        recent = recent.slice(0, 10);
+        
+        localStorage.setItem(this.recentKey, JSON.stringify(recent));
+    }
+
+    /**
      * Add page to recent list
      */
     addToRecent(title) {
