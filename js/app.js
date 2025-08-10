@@ -1447,11 +1447,13 @@ class WikiApp {
         }
         
         try {
+            console.log('Starting upload for file:', file.name);
             this.showUploadProgress();
             
             // Generate unique filename
             let fileName = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
             fileName = fileName.replace(/[^a-zA-Z0-9가-힣._-]/g, '_'); // Clean filename
+            console.log('Generated filename:', fileName);
             
             // Check if filename already exists
             let finalName = fileName;
@@ -1460,12 +1462,16 @@ class WikiApp {
                 finalName = `${fileName}_${counter}`;
                 counter++;
             }
+            console.log('Final filename:', finalName);
             
             // Convert to base64
             const dataUrl = await this.fileToDataUrl(file);
+            console.log('File converted to data URL, size:', dataUrl.length);
             
             // Save image
+            console.log('Calling storage.uploadImage with:', {finalName, size: file.size, type: file.type});
             const result = await this.storage.uploadImage(finalName, dataUrl, file.size, file.type);
+            console.log('Upload result:', result);
             
             this.hideUploadProgress();
             
@@ -1475,6 +1481,7 @@ class WikiApp {
                 
                 this.showNotification(`이미지 "${finalName}"이 업로드되었습니다. 위키에서 ![${finalName}]로 사용할 수 있습니다.`, 'success');
             } else {
+                console.error('Upload failed with result:', result);
                 this.showNotification(result.error || '업로드에 실패했습니다.', 'error');
             }
         } catch (error) {
@@ -1561,7 +1568,7 @@ class WikiApp {
 #파일 #이미지 #업로드`;
 
         // Save the file page - use savePage method directly
-        this.storage.savePage(pageTitle, filePageContent);
+        await this.storage.savePage(pageTitle, { content: filePageContent });
         
         // Update navigation to reflect new page
         this.updateNavigation();
