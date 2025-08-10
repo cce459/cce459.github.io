@@ -1161,11 +1161,17 @@ class WikiApp {
         
         // Image upload
         this.elements.uploadImageBtn.addEventListener('click', () => {
+            console.log('Upload button clicked');
             this.elements.imageFile.click();
         });
         
         this.elements.imageFile.addEventListener('change', (e) => {
-            this.uploadImage(e.target.files[0]);
+            console.log('File input changed, files:', e.target.files);
+            if (e.target.files && e.target.files[0]) {
+                this.uploadImage(e.target.files[0]);
+            } else {
+                console.log('No file selected');
+            }
         });
         
         // Image management

@@ -36,6 +36,11 @@ body {
     font-family: 'Microsoft YaHei', 'SimSun', 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Source Han Sans SC' !important;
 }
 
+/* Override any other font declarations */
+body, html, div, span, p, h1, h2, h3, h4, h5, h6, a, button, input, textarea {
+    font-family: 'Microsoft YaHei', 'SimSun', 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Source Han Sans SC' !important;
+}
+
 /* App Layout */
 .app-container {
     min-height: 100vh;
