@@ -509,27 +509,83 @@ YouTube 동영상: [[htp://yt.VIDEO_ID]]
      */
     async uploadImage(name, data, size, mimeType) {
         try {
-            const response = await fetch(this.imagesApiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
+            console.log('uploadImage called with:', { name, dataLength: data?.length, size, mimeType });
+            
+            if (this.isGitHubPages) {
+                // GitHub Pages: localStorage 사용
+                const images = this.getLocalImages();
+                const newImage = {
+                    id: Date.now(),
                     name,
                     data,
                     size,
-                    mimeType
-                })
-            });
+                    mimeType,
+                    uploadedAt: new Date().toISOString()
+                };
+                
+                images.push(newImage);
+                localStorage.setItem(this.imagesKey, JSON.stringify(images));
+                
+                console.log('Image saved to localStorage:', name);
+                return {
+                    status: "uploaded",
+                    image: newImage
+                };
+            } else {
+                // Replit: 서버 API 사용
+                console.log('Making API request to:', this.imagesApiUrl);
+                const response = await fetch(this.imagesApiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name,
+                        data,
+                        size,
+                        mimeType
+                    })
+                });
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                console.log('Response status:', response.status, 'ok:', response.ok);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Server error response:', errorText);
+                    throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+                }
+
+                const result = await response.json();
+                console.log('Server response:', result);
+                return result;
             }
-
-            return await response.json();
         } catch (error) {
             console.error('Error uploading image:', error);
-            throw error;
+            // 실패 시 localStorage로 fallback
+            try {
+                console.log('Attempting fallback to localStorage...');
+                const images = this.getLocalImages();
+                const newImage = {
+                    id: Date.now(),
+                    name,
+                    data,
+                    size,
+                    mimeType,
+                    uploadedAt: new Date().toISOString()
+                };
+                
+                images.push(newImage);
+                localStorage.setItem(this.imagesKey, JSON.stringify(images));
+                
+                console.log('Image saved to localStorage (fallback):', name);
+                return {
+                    status: "uploaded",
+                    image: newImage
+                };
+            } catch (fallbackError) {
+                console.error('Fallback save also failed:', fallbackError);
+                throw error;
+            }
         }
     }
 
@@ -538,14 +594,26 @@ YouTube 동영상: [[htp://yt.VIDEO_ID]]
      */
     async getAllImages() {
         try {
-            const response = await fetch(this.imagesApiUrl);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            if (this.isGitHubPages) {
+                // GitHub Pages: localStorage 사용
+                return this.getLocalImages();
+            } else {
+                // Replit: 서버 API 사용
+                const response = await fetch(this.imagesApiUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return await response.json();
             }
-            return await response.json();
         } catch (error) {
             console.error('Error fetching images:', error);
-            return [];
+            // Fallback to localStorage
+            try {
+                return this.getLocalImages();
+            } catch (fallbackError) {
+                console.error('Fallback get images also failed:', fallbackError);
+                return [];
+            }
         }
     }
 
@@ -554,11 +622,25 @@ YouTube 동영상: [[htp://yt.VIDEO_ID]]
      */
     async getImage(name) {
         try {
-            const allImages = await this.getAllImages();
-            return allImages.find(img => img.name === name);
+            if (this.isGitHubPages) {
+                // GitHub Pages: localStorage 사용
+                const images = this.getLocalImages();
+                return images.find(img => img.name === name);
+            } else {
+                // Replit: 서버 API 사용
+                const allImages = await this.getAllImages();
+                return allImages.find(img => img.name === name);
+            }
         } catch (error) {
             console.error('Error getting image:', error);
-            return null;
+            // Fallback to localStorage
+            try {
+                const images = this.getLocalImages();
+                return images.find(img => img.name === name);
+            } catch (fallbackError) {
+                console.error('Fallback get image also failed:', fallbackError);
+                return null;
+            }
         }
     }
 
