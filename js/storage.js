@@ -4,9 +4,21 @@
 class WikiStorage {
     constructor() {
         console.log('WikiStorage constructor started');
+        // GitHub Pages는 정적 호스팅이므로 localStorage 사용
+        this.isGitHubPages = window.location.hostname.includes('github.io') || 
+                           window.location.hostname.includes('.kr') ||
+                           !window.location.hostname.includes('replit');
+        
         this.apiBaseUrl = '/pages';
         this.imagesApiUrl = '/api/images';
         this.commentsApiUrl = '/pages';
+        
+        // GitHub Pages 환경에서는 localStorage 키 설정
+        this.pagesKey = 'wiki-pages';
+        this.commentsKey = 'wiki-comments';
+        this.imagesKey = 'wiki-images';
+        
+        console.log('Storage mode:', this.isGitHubPages ? 'localStorage (GitHub Pages)' : 'Server API');
         console.log('API URLs set:', {
             apiBaseUrl: this.apiBaseUrl,
             imagesApiUrl: this.imagesApiUrl,
@@ -22,6 +34,39 @@ class WikiStorage {
         
         console.log('Starting storage initialization...');
         this.initializeStorage();
+    }
+
+    /**
+     * localStorage 헬퍼 메서드들
+     */
+    getLocalPages() {
+        try {
+            const pages = localStorage.getItem(this.pagesKey);
+            return pages ? JSON.parse(pages) : {};
+        } catch (error) {
+            console.error('Error reading pages from localStorage:', error);
+            return {};
+        }
+    }
+
+    getLocalComments() {
+        try {
+            const comments = localStorage.getItem(this.commentsKey);
+            return comments ? JSON.parse(comments) : [];
+        } catch (error) {
+            console.error('Error reading comments from localStorage:', error);
+            return [];
+        }
+    }
+
+    getLocalImages() {
+        try {
+            const images = localStorage.getItem(this.imagesKey);
+            return images ? JSON.parse(images) : [];
+        } catch (error) {
+            console.error('Error reading images from localStorage:', error);
+            return [];
+        }
     }
 
     /**
@@ -88,8 +133,22 @@ YouTube 동영상: [[htp://yt.VIDEO_ID]]
 즐겁게 작성하세요!`;
 
         try {
-            await this.savePage('대문', defaultContent, { tags: ['도움말'] });
-            console.log('기본 페이지 생성 완료');
+            if (this.isGitHubPages) {
+                // GitHub Pages: localStorage에 직접 저장
+                const pages = this.getLocalPages();
+                pages['대문'] = {
+                    content: defaultContent,
+                    metadata: { tags: ['도움말'] },
+                    lastModified: new Date().toISOString(),
+                    createdAt: new Date().toISOString()
+                };
+                localStorage.setItem(this.pagesKey, JSON.stringify(pages));
+                console.log('기본 페이지 생성 완료 (localStorage)');
+            } else {
+                // Replit: 서버 API 사용
+                await this.savePage('대문', defaultContent, { tags: ['도움말'] });
+                console.log('기본 페이지 생성 완료 (API)');
+            }
         } catch (error) {
             console.error('Error creating default pages:', error);
         }
@@ -100,27 +159,34 @@ YouTube 동영상: [[htp://yt.VIDEO_ID]]
      */
     async getAllPageTitles() {
         try {
-            console.log('Fetching page titles from:', this.apiBaseUrl);
-            const response = await fetch(this.apiBaseUrl, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'same-origin'
-            });
-            console.log('Response status:', response.status);
-            console.log('Response ok:', response.ok);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            if (this.isGitHubPages) {
+                // GitHub Pages: localStorage 사용
+                const pages = this.getLocalPages();
+                return Object.keys(pages);
+            } else {
+                // Replit: 서버 API 사용
+                console.log('Fetching page titles from:', this.apiBaseUrl);
+                const response = await fetch(this.apiBaseUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'same-origin'
+                });
+                console.log('Response status:', response.status);
+                console.log('Response ok:', response.ok);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                console.log('Page titles data:', data);
+                return data;
             }
-            const data = await response.json();
-            console.log('Page titles data:', data);
-            return data;
         } catch (error) {
             console.error('Error fetching page titles:', error);
-            console.error('Failed URL:', this.apiBaseUrl);
-            console.error('Error details:', error.message, error.stack);
-            return [];
+            // 실패 시 localStorage로 fallback
+            const pages = this.getLocalPages();
+            return Object.keys(pages);
         }
     }
 
@@ -129,27 +195,34 @@ YouTube 동영상: [[htp://yt.VIDEO_ID]]
      */
     async getAllPages() {
         try {
-            const titles = await this.getAllPageTitles();
-            const pages = {};
-            
-            for (const title of titles) {
-                const page = await this.getPage(title);
-                if (page) {
-                    pages[title] = {
-                        title: page.title,
-                        content: page.content,
-                        created: new Date(page.createdAt).getTime(),
-                        modified: new Date(page.lastModified).getTime(),
-                        version: 1,
-                        metadata: page.metadata || {}
-                    };
+            if (this.isGitHubPages) {
+                // GitHub Pages: localStorage에서 직접 가져오기
+                return this.getLocalPages();
+            } else {
+                // Replit: 서버 API 사용
+                const titles = await this.getAllPageTitles();
+                const pages = {};
+                
+                for (const title of titles) {
+                    const page = await this.getPage(title);
+                    if (page) {
+                        pages[title] = {
+                            title: page.title,
+                            content: page.content,
+                            created: new Date(page.createdAt).getTime(),
+                            modified: new Date(page.lastModified).getTime(),
+                            version: 1,
+                            metadata: page.metadata || {}
+                        };
+                    }
                 }
+                
+                return pages;
             }
-            
-            return pages;
         } catch (error) {
             console.error('Error fetching all pages:', error);
-            return {};
+            // 실패 시 localStorage로 fallback
+            return this.getLocalPages();
         }
     }
 
@@ -159,51 +232,75 @@ YouTube 동영상: [[htp://yt.VIDEO_ID]]
     async getPage(title) {
         try {
             console.log('Getting page:', title);
-            // Check cache first
-            if (this.pageCache.has(title)) {
-                const cached = this.pageCache.get(title);
-                if (Date.now() - cached.timestamp < 30000) { // 30초 캐시
-                    console.log('Using cached page for:', title);
-                    return cached.data;
+            
+            if (this.isGitHubPages) {
+                // GitHub Pages: localStorage 사용
+                const pages = this.getLocalPages();
+                const page = pages[title];
+                if (!page) return null;
+                
+                const comments = this.getLocalComments().filter(c => c.pageTitle === title);
+                return {
+                    title,
+                    content: page.content || page,
+                    lastModified: page.lastModified || new Date().toISOString(),
+                    metadata: page.metadata || {},
+                    comments: comments
+                };
+            } else {
+                // Replit: 서버 API 사용
+                // Check cache first
+                if (this.pageCache.has(title)) {
+                    const cached = this.pageCache.get(title);
+                    if (Date.now() - cached.timestamp < 30000) { // 30초 캐시
+                        console.log('Using cached page for:', title);
+                        return cached.data;
+                    }
                 }
+                
+                const url = `${this.apiBaseUrl}/${encodeURIComponent(title)}`;
+                console.log('Fetching page from URL:', url);
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'same-origin'
+                });
+                console.log('Page response status:', response.status);
+                if (response.status === 404) {
+                    console.log('Page not found:', title);
+                    return null;
+                }
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const page = await response.json();
+                console.log('Page data received:', page);
+                
+                // Cache the result
+                this.pageCache.set(title, {
+                    data: page,
+                    timestamp: Date.now()
+                });
+                
+                return page;
             }
-            
-            const url = `${this.apiBaseUrl}/${encodeURIComponent(title)}`;
-            console.log('Fetching page from URL:', url);
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'same-origin'
-            });
-            console.log('Page response status:', response.status);
-            if (response.status === 404) {
-                console.log('Page not found:', title);
-                return null;
-            }
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const page = await response.json();
-            console.log('Page data received:', page);
-            
-            // Cache the result
-            this.pageCache.set(title, {
-                data: page,
-                timestamp: Date.now()
-            });
-            
-            return page;
         } catch (error) {
             console.error('Error fetching page:', error);
-            console.error('Failed URL:', `${this.apiBaseUrl}/${encodeURIComponent(title)}`);
-            console.error('Error type:', typeof error);
-            console.error('Error name:', error.name);
-            console.error('Error message:', error.message);
-            if (error.stack) console.error('Error stack:', error.stack);
-            return null;
+            // 실패 시 localStorage로 fallback
+            const pages = this.getLocalPages();
+            const page = pages[title];
+            if (!page) return null;
+            
+            return {
+                title,
+                content: page.content || page,
+                lastModified: page.lastModified || new Date().toISOString(),
+                metadata: page.metadata || {},
+                comments: []
+            };
         }
     }
 
@@ -212,53 +309,104 @@ YouTube 동영상: [[htp://yt.VIDEO_ID]]
      */
     async savePage(title, content, metadata = {}) {
         try {
-            const url = `${this.apiBaseUrl}/${encodeURIComponent(title)}`;
-            const requestBody = { content, metadata };
-            
             console.log('Saving page:', title);
-            console.log('Save URL:', url);
-            console.log('Request body:', requestBody);
             
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'same-origin',
-                body: JSON.stringify(requestBody)
-            });
+            if (this.isGitHubPages) {
+                // GitHub Pages: localStorage 사용
+                const pages = this.getLocalPages();
+                const now = new Date().toISOString();
+                
+                pages[title] = {
+                    content,
+                    metadata,
+                    lastModified: now,
+                    createdAt: pages[title]?.createdAt || now
+                };
+                
+                localStorage.setItem(this.pagesKey, JSON.stringify(pages));
+                this.addToRecent(title);
+                
+                console.log('Page saved to localStorage:', title);
+                return {
+                    status: 'saved',
+                    page: {
+                        title,
+                        content,
+                        metadata,
+                        lastModified: now
+                    }
+                };
+            } else {
+                // Replit: 서버 API 사용
+                const url = `${this.apiBaseUrl}/${encodeURIComponent(title)}`;
+                const requestBody = { content, metadata };
+                
+                console.log('Save URL:', url);
+                console.log('Request body:', requestBody);
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify(requestBody)
+                });
 
-            console.log('Save response status:', response.status);
-            console.log('Save response ok:', response.ok);
+                console.log('Save response status:', response.status);
+                console.log('Save response ok:', response.ok);
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Save error response:', errorText);
-                throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Save error response:', errorText);
+                    throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+                }
+
+                const result = await response.json();
+                console.log('Save result:', result);
+                
+                // Update cache
+                this.pageCache.set(title, {
+                    data: result.page,
+                    timestamp: Date.now()
+                });
+                
+                // Update recent pages
+                this.addToRecent(title);
+                
+                return result;
             }
-
-            const result = await response.json();
-            console.log('Save result:', result);
-            
-            // Update cache
-            this.pageCache.set(title, {
-                data: result.page,
-                timestamp: Date.now()
-            });
-            
-            // Update recent pages
-            this.addToRecent(title);
-            
-            return result;
         } catch (error) {
             console.error('Error saving page:', error);
-            console.error('Failed URL:', `${this.apiBaseUrl}/${encodeURIComponent(title)}`);
-            console.error('Request body:', JSON.stringify({ content, metadata }));
-            console.error('Error type:', typeof error);
-            console.error('Error name:', error.name);
-            console.error('Error message:', error.message);
-            if (error.stack) console.error('Error stack:', error.stack);
-            throw error;
+            // 실패 시 localStorage로 fallback
+            try {
+                const pages = this.getLocalPages();
+                const now = new Date().toISOString();
+                
+                pages[title] = {
+                    content,
+                    metadata,
+                    lastModified: now,
+                    createdAt: pages[title]?.createdAt || now
+                };
+                
+                localStorage.setItem(this.pagesKey, JSON.stringify(pages));
+                this.addToRecent(title);
+                
+                console.log('Page saved to localStorage (fallback):', title);
+                return {
+                    status: 'saved',
+                    page: {
+                        title,
+                        content,
+                        metadata,
+                        lastModified: now
+                    }
+                };
+            } catch (fallbackError) {
+                console.error('Fallback save also failed:', fallbackError);
+                throw error;
+            }
         }
     }
 
@@ -684,9 +832,10 @@ YouTube 동영상: [[htp://yt.VIDEO_ID]]
                 if (title === pageTitle) continue;
                 
                 // Check for links in content
+                const content = page.content || page;
                 const linkRegex = new RegExp(`\\[\\[${pageTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:\\|[^\\]]+)?\\]\\]`, 'g');
-                if (linkRegex.test(page.content)) {
-                    backlinks.push(title);
+                if (linkRegex.test(content)) {
+                    backlinks.push({ title });
                 }
             }
             

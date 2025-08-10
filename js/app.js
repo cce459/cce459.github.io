@@ -1845,20 +1845,23 @@ class WikiApp {
         
         const backlinks = this.storage.getBacklinks(pageTitle);
         
-        if (backlinks.length === 0) {
+        // 백링크가 배열이 아닌 경우 빈 배열로 처리
+        const backlinkList = Array.isArray(backlinks) ? backlinks : [];
+        
+        if (backlinkList.length === 0) {
             this.elements.backlinksSection.innerHTML = `
                 <h4><i data-feather="arrow-left"></i> 백링크 <span class="link-count">(0)</span></h4>
                 <p class="text-muted">이 페이지를 링크하는 페이지가 없습니다.</p>
             `;
         } else {
-            const displayLinks = backlinks.slice(0, 5);
-            const remainingCount = backlinks.length - 5;
+            const displayLinks = backlinkList.slice(0, 5);
+            const remainingCount = backlinkList.length - 5;
             
             this.elements.backlinksSection.innerHTML = `
-                <h4><i data-feather="arrow-left"></i> 백링크 <span class="link-count">(${backlinks.length})</span></h4>
+                <h4><i data-feather="arrow-left"></i> 백링크 <span class="link-count">(${backlinkList.length})</span></h4>
                 <ul class="backlinks-list">
                     ${displayLinks.map(link => 
-                        `<li><a href="#" onclick="app.navigateToPage('${link.title}')">${link.title}</a></li>`
+                        `<li><a href="#" onclick="app.navigateToPage('${link.title || link}')">${link.title || link}</a></li>`
                     ).join('')}
                 </ul>
                 ${remainingCount > 0 ? 
