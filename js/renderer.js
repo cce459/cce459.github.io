@@ -539,23 +539,29 @@ class WikiRenderer {
             
             try {
                 // Try to fetch image synchronously
+                console.log('Fetching image via API:', imageName, encodeURIComponent(imageName));
                 const response = await fetch(`/api/images/${encodeURIComponent(imageName)}`);
+                console.log('Image API response status:', response.status, response.ok);
+                
                 if (response.ok) {
                     const image = await response.json();
+                    console.log('Image data received:', imageName, 'data length:', image.data ? image.data.length : 'no data');
                     let imageHtml = `<img src="${image.data}" alt="${this.escapeHtml(imageName)}" title="${this.escapeHtml(imageName)}" style="max-width: 100%; height: auto;">`;
                     if (caption) {
                         imageHtml += `<div class="image-caption">${this.escapeHtml(caption)}</div>`;
                     }
                     // Replace the match directly in content
                     content = content.replace(match[0], imageHtml);
-                    console.log('Image rendered:', imageName);
+                    console.log('Image rendered successfully:', imageName);
                 } else {
-                    throw new Error('Image not found');
+                    const errorText = await response.text();
+                    console.error('Image API error:', response.status, errorText);
+                    throw new Error(`Image not found: ${response.status}`);
                 }
             } catch (error) {
                 console.error('Error loading image:', imageName, error);
                 // Replace with error message
-                content = content.replace(match[0], `<span style="color: #ef4444; font-style: italic;">[이미지 "${this.escapeHtml(imageName)}"를 찾을 수 없습니다]</span>`);
+                content = content.replace(match[0], `<span style="color: #ef4444; font-style: italic;">[이미지 "${this.escapeHtml(imageName)}"를 찾을 수 없습니다 - ${error.message}]</span>`);
             }
         }
         
