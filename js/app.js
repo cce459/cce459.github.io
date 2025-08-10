@@ -1458,9 +1458,14 @@ class WikiApp {
             // Check if filename already exists
             let finalName = fileName;
             let counter = 1;
-            while (await this.storage.getImage(finalName)) {
-                finalName = `${fileName}_${counter}`;
-                counter++;
+            try {
+                while (await this.storage.getImage(finalName)) {
+                    finalName = `${fileName}_${counter}`;
+                    counter++;
+                }
+            } catch (error) {
+                console.warn('Could not check for existing images, using original filename:', error);
+                // If we can't check for duplicates, just use the original filename
             }
             console.log('Final filename:', finalName);
             
