@@ -4,11 +4,21 @@ import ws from "ws";
 
 neonConfig.webSocketConstructor = ws;
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
-}
+// Check if database is available
+export const isDatabaseAvailable = !!process.env.DATABASE_URL;
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool });
+// Only set up database if DATABASE_URL is available
+export let pool = null;
+export let db = null;
+
+if (process.env.DATABASE_URL) {
+  try {
+    pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    db = drizzle({ client: pool });
+    console.log('✅ Database connection established');
+  } catch (error) {
+    console.warn('⚠️ Database connection failed, falling back to file-based storage:', error.message);
+  }
+} else {
+  console.log('📁 Running without database - using file-based storage');
+}

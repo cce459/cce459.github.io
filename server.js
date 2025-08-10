@@ -5,9 +5,10 @@ import cors from "cors";
 import { fileURLToPath } from 'url';
 import { WebSocketServer } from 'ws';
 import { createServer } from 'http';
-import { db } from './server/db.js';
+import { db, isDatabaseAvailable } from './server/db.js';
 import { pages, comments, images } from './shared/schema.js';
 import { eq, desc } from 'drizzle-orm';
+import { fileStorage } from './server/fileStorage.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -43,8 +44,13 @@ wss.on('connection', (ws) => {
 // 모든 페이지 목록 가져오기
 app.get("/pages", async (req, res) => {
   try {
-    const result = await db.select({ title: pages.title }).from(pages);
-    res.json(result.map(p => p.title));
+    if (isDatabaseAvailable && db) {
+      const result = await db.select({ title: pages.title }).from(pages);
+      res.json(result.map(p => p.title));
+    } else {
+      const titles = await fileStorage.getAllPageTitles();
+      res.json(titles);
+    }
   } catch (error) {
     console.error('Error fetching pages:', error);
     res.status(500).json({ error: "Failed to fetch pages" });
@@ -55,24 +61,33 @@ app.get("/pages", async (req, res) => {
 app.get("/pages/:title", async (req, res) => {
   try {
     const title = req.params.title;
-    const [page] = await db.select().from(pages).where(eq(pages.title, title));
     
-    if (!page) {
-      return res.status(404).json({ error: "Not found" });
+    if (isDatabaseAvailable && db) {
+      const [page] = await db.select().from(pages).where(eq(pages.title, title));
+      
+      if (!page) {
+        return res.status(404).json({ error: "Not found" });
+      }
+      
+      // 페이지의 댓글도 함께 가져오기
+      const pageComments = await db.select().from(comments)
+        .where(eq(comments.pageId, page.id))
+        .orderBy(desc(comments.createdAt));
+      
+      res.json({
+        title: page.title,
+        content: page.content,
+        lastModified: page.lastModified,
+        metadata: page.metadata,
+        comments: pageComments
+      });
+    } else {
+      const page = await fileStorage.getPage(title);
+      if (!page) {
+        return res.status(404).json({ error: "Not found" });
+      }
+      res.json(page);
     }
-    
-    // 페이지의 댓글도 함께 가져오기
-    const pageComments = await db.select().from(comments)
-      .where(eq(comments.pageId, page.id))
-      .orderBy(desc(comments.createdAt));
-    
-    res.json({
-      title: page.title,
-      content: page.content,
-      lastModified: page.lastModified,
-      metadata: page.metadata,
-      comments: pageComments
-    });
   } catch (error) {
     console.error('Error fetching page:', error);
     res.status(500).json({ error: "Failed to fetch page" });
@@ -85,25 +100,29 @@ app.post("/pages/:title", async (req, res) => {
     const title = req.params.title;
     const { content, metadata = {} } = req.body;
     
-    // 기존 페이지 확인
-    const [existingPage] = await db.select().from(pages).where(eq(pages.title, title));
-    
     let result;
-    if (existingPage) {
-      // 페이지 업데이트
-      [result] = await db.update(pages)
-        .set({ 
-          content, 
-          metadata,
-          lastModified: new Date()
-        })
-        .where(eq(pages.title, title))
-        .returning();
+    if (isDatabaseAvailable && db) {
+      // 기존 페이지 확인
+      const [existingPage] = await db.select().from(pages).where(eq(pages.title, title));
+      
+      if (existingPage) {
+        // 페이지 업데이트
+        [result] = await db.update(pages)
+          .set({ 
+            content, 
+            metadata,
+            lastModified: new Date()
+          })
+          .where(eq(pages.title, title))
+          .returning();
+      } else {
+        // 새 페이지 생성
+        [result] = await db.insert(pages)
+          .values({ title, content, metadata })
+          .returning();
+      }
     } else {
-      // 새 페이지 생성
-      [result] = await db.insert(pages)
-        .values({ title, content, metadata })
-        .returning();
+      result = await fileStorage.savePage(title, { content, metadata });
     }
     
     // 실시간 업데이트 브로드캐스트
@@ -129,16 +148,21 @@ app.post("/pages/:title/comments", async (req, res) => {
       return res.status(400).json({ error: "Author and content are required" });
     }
     
-    // 페이지 확인
-    const [page] = await db.select().from(pages).where(eq(pages.title, title));
-    if (!page) {
-      return res.status(404).json({ error: "Page not found" });
+    let comment;
+    if (isDatabaseAvailable && db) {
+      // 페이지 확인
+      const [page] = await db.select().from(pages).where(eq(pages.title, title));
+      if (!page) {
+        return res.status(404).json({ error: "Page not found" });
+      }
+      
+      // 댓글 추가
+      [comment] = await db.insert(comments)
+        .values({ pageId: page.id, author, content })
+        .returning();
+    } else {
+      comment = await fileStorage.addComment(title, { author, content });
     }
-    
-    // 댓글 추가
-    const [comment] = await db.insert(comments)
-      .values({ pageId: page.id, author, content })
-      .returning();
     
     // 실시간 업데이트 브로드캐스트
     broadcast({
@@ -163,10 +187,15 @@ app.put("/comments/:commentId", async (req, res) => {
       return res.status(400).json({ error: "Content is required" });
     }
     
-    const [updatedComment] = await db.update(comments)
-      .set({ content, updatedAt: new Date() })
-      .where(eq(comments.id, commentId))
-      .returning();
+    let updatedComment;
+    if (isDatabaseAvailable && db) {
+      [updatedComment] = await db.update(comments)
+        .set({ content, updatedAt: new Date() })
+        .where(eq(comments.id, commentId))
+        .returning();
+    } else {
+      updatedComment = await fileStorage.updateComment(commentId, { content });
+    }
     
     if (!updatedComment) {
       return res.status(404).json({ error: "Comment not found" });
@@ -189,9 +218,14 @@ app.delete("/comments/:commentId", async (req, res) => {
   try {
     const commentId = parseInt(req.params.commentId);
     
-    const [deletedComment] = await db.delete(comments)
-      .where(eq(comments.id, commentId))
-      .returning();
+    let deletedComment;
+    if (isDatabaseAvailable && db) {
+      [deletedComment] = await db.delete(comments)
+        .where(eq(comments.id, commentId))
+        .returning();
+    } else {
+      deletedComment = await fileStorage.deleteComment(commentId);
+    }
     
     if (!deletedComment) {
       return res.status(404).json({ error: "Comment not found" });
@@ -219,10 +253,15 @@ app.post("/api/images", async (req, res) => {
       return res.status(400).json({ error: "All image fields are required" });
     }
     
-    // 이미지 저장
-    const [image] = await db.insert(images)
-      .values({ name, data, size, mimeType })
-      .returning();
+    let image;
+    if (isDatabaseAvailable && db) {
+      // 이미지 저장
+      [image] = await db.insert(images)
+        .values({ name, data, size, mimeType })
+        .returning();
+    } else {
+      image = await fileStorage.saveImage({ name, data, size, mimeType });
+    }
     
     res.json({ status: "uploaded", image });
   } catch (error) {
@@ -233,7 +272,12 @@ app.post("/api/images", async (req, res) => {
 
 app.get("/api/images", async (req, res) => {
   try {
-    const allImages = await db.select().from(images).orderBy(desc(images.uploadedAt));
+    let allImages;
+    if (isDatabaseAvailable && db) {
+      allImages = await db.select().from(images).orderBy(desc(images.uploadedAt));
+    } else {
+      allImages = await fileStorage.getAllImages();
+    }
     res.json(allImages);
   } catch (error) {
     console.error('Error fetching images:', error);
@@ -245,9 +289,14 @@ app.delete("/api/images/:name", async (req, res) => {
   try {
     const name = req.params.name;
     
-    const [deletedImage] = await db.delete(images)
-      .where(eq(images.name, name))
-      .returning();
+    let deletedImage;
+    if (isDatabaseAvailable && db) {
+      [deletedImage] = await db.delete(images)
+        .where(eq(images.name, name))
+        .returning();
+    } else {
+      deletedImage = await fileStorage.deleteImage(name);
+    }
     
     if (!deletedImage) {
       return res.status(404).json({ error: "Image not found" });
