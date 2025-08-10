@@ -57,8 +57,7 @@ class WikiApp {
             settingsBtn: document.getElementById('settings-btn'),
             settingsMenu: document.getElementById('settings-menu'),
             darkModeToggle: document.getElementById('dark-mode-toggle'),
-            deletePageBtn: document.getElementById('delete-page-btn'),
-            pageHistoryBtn: document.getElementById('page-history-btn'),
+
             exportDataBtn: document.getElementById('export-data-btn'),
             importDataBtn: document.getElementById('import-data-btn'),
             importFile: document.getElementById('import-file'),
@@ -72,11 +71,7 @@ class WikiApp {
             imageGrid: document.getElementById('image-grid'),
             closeImages: document.getElementById('close-images'),
             
-            // History modal
-            pageHistoryModal: document.getElementById('page-history-modal'),
-            historyTitle: document.getElementById('history-title'),
-            historyContent: document.getElementById('history-content'),
-            closeHistory: document.getElementById('close-history'),
+
             
             // Stats modal
             wikiStatsModal: document.getElementById('wiki-stats-modal'),
@@ -1128,16 +1123,7 @@ class WikiApp {
             this.toggleDarkMode();
         });
         
-        // Delete page
-        this.elements.deletePageBtn.addEventListener('click', () => {
-            this.deletePage();
-        });
-        
-        // Page history
-        this.elements.pageHistoryBtn.addEventListener('click', () => {
-            this.showPageHistory();
-        });
-        
+
         // Export data
         this.elements.exportDataBtn.addEventListener('click', () => {
             this.exportData();
@@ -1193,9 +1179,7 @@ class WikiApp {
         });
         
         // Modal close events
-        this.elements.closeHistory.addEventListener('click', () => {
-            this.elements.pageHistoryModal.style.display = 'none';
-        });
+
         
         this.elements.closeStats.addEventListener('click', () => {
             this.elements.wikiStatsModal.style.display = 'none';
@@ -1212,7 +1196,7 @@ class WikiApp {
         });
         
         // Close modals on background click
-        [this.elements.pageHistoryModal, this.elements.wikiStatsModal, this.elements.imageManagementModal, this.elements.updateHistoryModal].forEach(modal => {
+        [this.elements.wikiStatsModal, this.elements.imageManagementModal, this.elements.updateHistoryModal].forEach(modal => {
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     modal.style.display = 'none';
@@ -1267,59 +1251,7 @@ class WikiApp {
         );
     }
     
-    /**
-     * Delete current page
-     */
-    deletePage() {
-        if (this.currentPage === '대문') {
-            this.showNotification('대문 페이지는 삭제할 수 없습니다.', 'warning');
-            return;
-        }
-        
-        if (!confirm(`정말로 "${this.currentPage}" 페이지를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) {
-            return;
-        }
-        
-        if (this.storage.deletePage(this.currentPage)) {
-            this.showNotification('페이지가 삭제되었습니다.', 'success');
-            this.navigateToPage('대문');
-        } else {
-            this.showNotification('페이지 삭제에 실패했습니다.', 'error');
-        }
-        
-        this.closeSettingsMenu();
-    }
-    
-    /**
-     * Show page history
-     */
-    showPageHistory() {
-        const history = this.storage.getPageHistory(this.currentPage);
-        this.elements.historyTitle.textContent = `"${this.currentPage}" 페이지 히스토리`;
-        
-        if (history.length === 0) {
-            this.elements.historyContent.innerHTML = '<p><em>이 페이지에 대한 히스토리가 없습니다.</em></p>';
-        } else {
-            const historyHtml = history.map((item, index) => {
-                const date = new Date(item.archivedAt);
-                return `
-                    <div class="history-item">
-                        <div class="history-meta">
-                            <span>버전 ${item.version} (${date.toLocaleString()})</span>
-                            <span>${item.content.length}자</span>
-                        </div>
-                        <div class="history-content">${this.escapeHtml(item.content.substring(0, 200))}${item.content.length > 200 ? '...' : ''}</div>
-                    </div>
-                `;
-            }).join('');
-            
-            this.elements.historyContent.innerHTML = historyHtml;
-        }
-        
-        this.elements.pageHistoryModal.style.display = 'flex';
-        this.closeSettingsMenu();
-    }
-    
+
     /**
      * Export data
      */

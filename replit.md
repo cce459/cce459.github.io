@@ -17,6 +17,8 @@ User requested to remove markdown support and use only wiki markup syntax.
 User requested mobile optimization for Samsung A16 phone display - implemented comprehensive responsive design with touch-friendly interface, optimized font sizes, and mobile-first layout.
 Mobile optimization completed with responsive breakpoints (768px, 480px, 360px), touch-friendly button sizes (44px minimum), improved font stacks for Korean text, and enhanced click event handling for mobile devices.
 User requested changing '즐겨찾기' (favorites) to '개추한 문서' (recommended documents) throughout the interface - updated all UI text and code references (August 10, 2025).
+User requested removal of delete page and page history features from settings menu - removed buttons, event listeners, functions, and modal HTML (August 10, 2025).
+User requested Chinese character font change to use Chinese font stack - updated CSS font-family to include 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', 'SimSun' for proper Chinese character rendering (August 10, 2025).
 
 # System Architecture
 
