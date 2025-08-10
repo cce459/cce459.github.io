@@ -550,6 +550,19 @@ YouTube 동영상: [[htp://yt.VIDEO_ID]]
     }
 
     /**
+     * Get a specific image by name
+     */
+    async getImage(name) {
+        try {
+            const allImages = await this.getAllImages();
+            return allImages.find(img => img.name === name);
+        } catch (error) {
+            console.error('Error getting image:', error);
+            return null;
+        }
+    }
+
+    /**
      * Delete image from server
      */
     async deleteImage(name) {

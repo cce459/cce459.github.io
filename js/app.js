@@ -1456,7 +1456,7 @@ class WikiApp {
             // Check if filename already exists
             let finalName = fileName;
             let counter = 1;
-            while (this.storage.getImage(finalName)) {
+            while (await this.storage.getImage(finalName)) {
                 finalName = `${fileName}_${counter}`;
                 counter++;
             }
@@ -1465,17 +1465,17 @@ class WikiApp {
             const dataUrl = await this.fileToDataUrl(file);
             
             // Save image
-            const result = this.storage.saveImage(finalName, dataUrl, file.size);
+            const result = await this.storage.uploadImage(finalName, dataUrl, file.size, file.type);
             
             this.hideUploadProgress();
             
-            if (result.success) {
+            if (result.status === "uploaded") {
                 // Create file document for the uploaded image
                 await this.createImageFilePage(finalName, file, dataUrl);
                 
                 this.showNotification(`이미지 "${finalName}"이 업로드되었습니다. 위키에서 ![${finalName}]로 사용할 수 있습니다.`, 'success');
             } else {
-                this.showNotification(result.error, 'error');
+                this.showNotification(result.error || '업로드에 실패했습니다.', 'error');
             }
         } catch (error) {
             this.hideUploadProgress();
