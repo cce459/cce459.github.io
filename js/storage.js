@@ -92,6 +92,8 @@ YouTube 동영상: [[htp://yt.VIDEO_ID]]
             return await response.json();
         } catch (error) {
             console.error('Error fetching page titles:', error);
+            console.error('Failed URL:', this.apiBaseUrl);
+            console.error('Error details:', error.message, error.stack);
             return [];
         }
     }
@@ -157,6 +159,8 @@ YouTube 동영상: [[htp://yt.VIDEO_ID]]
             return page;
         } catch (error) {
             console.error('Error fetching page:', error);
+            console.error('Failed URL:', `${this.apiBaseUrl}/${encodeURIComponent(title)}`);
+            console.error('Error details:', error.message, error.stack);
             return null;
         }
     }
@@ -195,6 +199,9 @@ YouTube 동영상: [[htp://yt.VIDEO_ID]]
             return result;
         } catch (error) {
             console.error('Error saving page:', error);
+            console.error('Failed URL:', `${this.apiBaseUrl}/${encodeURIComponent(title)}`);
+            console.error('Request body:', JSON.stringify({ content, metadata }));
+            console.error('Error details:', error.message, error.stack);
             throw error;
         }
     }
