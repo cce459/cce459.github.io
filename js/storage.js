@@ -618,6 +618,29 @@ YouTube 동영상: [[htp://yt.VIDEO_ID]]
     }
 
     /**
+     * Add page to favorites
+     */
+    addToFavorites(title) {
+        let favorites = this.getFavorites();
+        if (!favorites.includes(title)) {
+            favorites.push(title);
+            localStorage.setItem(this.favoritesKey, JSON.stringify(favorites));
+        }
+    }
+
+    /**
+     * Remove page from favorites
+     */
+    removeFromFavorites(title) {
+        let favorites = this.getFavorites();
+        const index = favorites.indexOf(title);
+        if (index !== -1) {
+            favorites.splice(index, 1);
+            localStorage.setItem(this.favoritesKey, JSON.stringify(favorites));
+        }
+    }
+
+    /**
      * Add/remove page from favorites
      */
     toggleFavorite(title) {
@@ -640,6 +663,26 @@ YouTube 동영상: [[htp://yt.VIDEO_ID]]
     isFavorite(title) {
         const favorites = this.getFavorites();
         return favorites.includes(title);
+    }
+
+    /**
+     * Get comments for a page
+     */
+    async getPageComments(pageTitle) {
+        try {
+            if (this.isGitHubPages) {
+                // GitHub Pages: localStorage에서 댓글 가져오기
+                const comments = this.getLocalComments();
+                return comments.filter(comment => comment.pageTitle === pageTitle);
+            } else {
+                // Replit: 서버 API 사용
+                const page = await this.getPage(pageTitle);
+                return page ? page.comments || [] : [];
+            }
+        } catch (error) {
+            console.error('Error getting page comments:', error);
+            return [];
+        }
     }
 
     /**

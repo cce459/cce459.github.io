@@ -16,6 +16,7 @@ User requested automatic [[분류:미분류]] category addition to all uploaded 
 User requested to remove markdown support and use only wiki markup syntax.
 User requested mobile optimization for Samsung A16 phone display - implemented comprehensive responsive design with touch-friendly interface, optimized font sizes, and mobile-first layout.
 Mobile optimization completed with responsive breakpoints (768px, 480px, 360px), touch-friendly button sizes (44px minimum), improved font stacks for Korean text, and enhanced click event handling for mobile devices.
+User requested changing '즐겨찾기' (favorites) to '개추한 문서' (recommended documents) throughout the interface - updated all UI text and code references (August 10, 2025).
 
 # System Architecture
 

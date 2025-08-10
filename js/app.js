@@ -2038,10 +2038,10 @@ class WikiApp {
 
         if (this.storage.isFavorite(currentPageTitle)) {
             this.storage.removeFromFavorites(currentPageTitle);
-            this.showNotification('즐겨찾기에서 제거되었습니다.', 'success');
+            this.showNotification('개추한 문서에서 제거되었습니다.', 'success');
         } else {
             this.storage.addToFavorites(currentPageTitle);
-            this.showNotification('즐겨찾기에 추가되었습니다.', 'success');
+            this.showNotification('개추한 문서에 추가되었습니다.', 'success');
         }
 
         this.updateFavoriteButton(currentPageTitle);
@@ -2060,14 +2060,14 @@ class WikiApp {
         
         if (isFavorite) {
             this.elements.favoriteBtn.classList.add('favorite-active');
-            this.elements.favoriteBtn.title = '즐겨찾기에서 제거';
+            this.elements.favoriteBtn.title = '개추한 문서에서 제거';
             if (icon) {
                 icon.setAttribute('data-feather', 'star');
                 icon.style.fill = 'currentColor';
             }
         } else {
             this.elements.favoriteBtn.classList.remove('favorite-active');
-            this.elements.favoriteBtn.title = '즐겨찾기에 추가';
+            this.elements.favoriteBtn.title = '개추한 문서에 추가';
             if (icon) {
                 icon.setAttribute('data-feather', 'star');
                 icon.style.fill = 'none';
@@ -2086,7 +2086,7 @@ class WikiApp {
         const favorites = this.storage.getFavorites();
         
         if (favorites.length === 0) {
-            this.elements.favoritesList.innerHTML = '<li class="no-favorites">즐겨찾기가 없습니다</li>';
+            this.elements.favoritesList.innerHTML = '<li class="no-favorites">개추한 문서가 없습니다</li>';
             return;
         }
 
