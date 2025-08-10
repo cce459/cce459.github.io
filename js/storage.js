@@ -3,9 +3,15 @@
  */
 class WikiStorage {
     constructor() {
+        console.log('WikiStorage constructor started');
         this.apiBaseUrl = '/pages';
         this.imagesApiUrl = '/api/images';
         this.commentsApiUrl = '/pages';
+        console.log('API URLs set:', {
+            apiBaseUrl: this.apiBaseUrl,
+            imagesApiUrl: this.imagesApiUrl,
+            commentsApiUrl: this.commentsApiUrl
+        });
         
         // Local cache for better performance
         this.pageCache = new Map();
@@ -14,6 +20,7 @@ class WikiStorage {
         this.favoritesKey = 'wiki-favorites';
         this.templatesKey = 'wiki-templates';
         
+        console.log('Starting storage initialization...');
         this.initializeStorage();
     }
 
@@ -22,12 +29,20 @@ class WikiStorage {
      */
     async initializeStorage() {
         try {
+            console.log('Getting all page titles...');
             const pages = await this.getAllPageTitles();
+            console.log('Page titles received:', pages);
             if (pages.length === 0) {
+                console.log('No pages found, creating default pages...');
                 await this.createDefaultPages();
             }
+            console.log('Storage initialization completed');
         } catch (error) {
             console.error('Error initializing storage:', error);
+            console.error('Error type:', typeof error);
+            console.error('Error name:', error.name);  
+            console.error('Error message:', error.message);
+            if (error.stack) console.error('Error stack:', error.stack);
         }
     }
 
@@ -160,7 +175,10 @@ YouTube 동영상: [[htp://yt.VIDEO_ID]]
         } catch (error) {
             console.error('Error fetching page:', error);
             console.error('Failed URL:', `${this.apiBaseUrl}/${encodeURIComponent(title)}`);
-            console.error('Error details:', error.message, error.stack);
+            console.error('Error type:', typeof error);
+            console.error('Error name:', error.name);
+            console.error('Error message:', error.message);
+            if (error.stack) console.error('Error stack:', error.stack);
             return null;
         }
     }

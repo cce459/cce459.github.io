@@ -583,6 +583,10 @@ class WikiApp {
             this.updateSaveButton();
         } catch (error) {
             console.error('Error loading page:', error);
+            console.error('Error type:', typeof error);
+            console.error('Error name:', error.name);  
+            console.error('Error message:', error.message);
+            if (error.stack) console.error('Error stack:', error.stack);
             // Show fallback content
             this.elements.pageTitle.textContent = pageName;
             this.elements.pageContent.innerHTML = '<p>페이지를 로드하는 중 오류가 발생했습니다. 새로고침해 주세요.</p>';
@@ -2391,7 +2395,17 @@ window.app = null;
 
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    window.app = new WikiApp();
+    console.log('DOM loaded, initializing WikiApp...');
+    try {
+        window.app = new WikiApp();
+        console.log('WikiApp initialized successfully');
+    } catch (error) {
+        console.error('Error initializing WikiApp:', error);
+        console.error('Error type:', typeof error);
+        console.error('Error name:', error.name);  
+        console.error('Error message:', error.message);
+        if (error.stack) console.error('Error stack:', error.stack);
+    }
 });
 
 // Global footnote utility functions
